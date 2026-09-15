@@ -810,8 +810,8 @@ export function App() {
                 <span className="text-amber-300 font-semibold">Node #1 [0.0, 0.1, 0.2]</span>
               </div>
               <div>
-                <span className="text-slate-500 block">Cluster Gateway IP:</span>
-                <span className="text-cyan-300 font-semibold">Node 1 (68.122.49.138)</span>
+                <span className="text-slate-500 block">Cluster Gateway:</span>
+                <span className="text-cyan-300 font-semibold">Node 1 [Encrypted Ingress]</span>
               </div>
               <div>
                 <span className="text-slate-500 block">Cluster Architecture:</span>
