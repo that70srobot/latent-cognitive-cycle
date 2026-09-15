@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shinys Cosmic Screensaver</title>
-  <meta name="description" content="Pure glowing stardust, cosmic glyphs, and interactive particle field.">
+  <title>Bioluminescent Fireflies Screensaver</title>
+  <meta name="description" content="A standalone, ambient, interactive bioluminescent firefly screensaver.">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #03050c;
+      background: radial-gradient(circle at 50% 50%, #03080c 0%, #010406 60%, #000203 100%);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
       user-select: none;
       cursor: crosshair;
@@ -29,61 +29,40 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      padding: 10px 20px;
+      padding: 8px 18px;
       border-radius: 9999px;
-      background: rgba(10, 15, 30, 0.85);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #94a3b8;
-      font-size: 12px;
+      background: rgba(3, 10, 8, 0.7);
+      border: 1px solid rgba(163, 230, 53, 0.25);
+      color: #a3e635;
+      font-size: 11px;
       font-family: monospace;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       pointer-events: none;
-      backdrop-filter: blur(8px);
-      transition: opacity 1.5s ease;
+      backdrop-filter: blur(12px);
+      transition: opacity 2s ease;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
+    .glow-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #00f2fe;
-      box-shadow: 0 0 10px #00f2fe;
-      animation: pulse 1.5s infinite;
+      background: #bef264;
+      box-shadow: 0 0 10px #bef264;
+      animation: fireflyPulse 2.5s infinite ease-in-out;
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.4); opacity: 1; }
-    }
-    #back-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 8px 16px;
-      border-radius: 9999px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #38bdf8;
-      font-size: 11px;
-      font-family: monospace;
-      text-decoration: none;
-      backdrop-filter: blur(8px);
-      transition: all 0.2s ease;
-    }
-    #back-btn:hover {
-      background: rgba(14, 116, 144, 0.5);
-      color: #fff;
-      border-color: #38bdf8;
+    @keyframes fireflyPulse {
+      0%, 100% { opacity: 0.2; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.3); }
     }
   </style>
 </head>
 <body>
   <canvas id="canvas"></canvas>
-  <a id="back-btn" href="./">← Cognitive Cycle</a>
   <div id="ui-hint">
-    <span class="pulse-dot"></span>
-    <span>Cosmic Screensaver · Move cursor for stardust · Click for shockwave</span>
+    <span class="glow-dot"></span>
+    <span>Bioluminescent Fireflies · Move cursor to attract · Click to ignite pulse</span>
   </div>
 
   <script>
@@ -93,13 +72,7 @@
 
     setTimeout(() => {
       hint.style.opacity = '0';
-    }, 4000);
-
-    const SHINY_COLORS = [
-      '#00f2fe', '#4facfe', '#a855f7', '#c084fc',
-      '#ec4899', '#38bdf8', '#fbcfe8', '#fef08a'
-    ];
-    const GLYPHS = ['Σ', '∞', 'ψ', '∇', 'λ', 'Ω', '∮', '≈', '⊗', '✨', '✦', '✳', '⟲', '◈'];
+    }, 4500);
 
     let width, height;
     function resize() {
@@ -109,7 +82,172 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Sound synth
+    // Natural firefly palette: soft yellow-green, chartreuse, golden amber, warm honey
+    const FIREFLY_COLORS = [
+      { r: 190, g: 242, b: 100 }, // #bef264 - Lime glow
+      { r: 253, g: 224, b: 71 },  // #fde047 - Soft yellow gold
+      { r: 163, g: 230, b: 53 },  // #a3e635 - Vibrant chartreuse
+      { r: 251, g: 191, b: 36 },  // #fbbf24 - Warm amber
+      { r: 110, g: 231, b: 183 }  // #6ee7b7 - Ethereal green-cyan
+    ];
+
+    class Firefly {
+      constructor() {
+        this.reset(true);
+      }
+
+      reset(initial = false) {
+        this.x = Math.random() * width;
+        this.y = initial ? Math.random() * height : height + 10;
+        
+        // Gentle organic flutter velocity
+        this.vx = (Math.random() - 0.5) * 0.6;
+        this.vy = -(Math.random() * 0.4 + 0.15); // gentle natural upward drift
+        
+        this.targetVx = this.vx;
+        this.targetVy = this.vy;
+        
+        this.size = Math.random() * 2.2 + 1.2;
+        this.color = FIREFLY_COLORS[Math.floor(Math.random() * FIREFLY_COLORS.length)];
+        
+        // Biological blinking cycle
+        this.phase = Math.random() * Math.PI * 2;
+        this.flashSpeed = Math.random() * 0.025 + 0.012; // slow breathing cycle
+        this.glowHold = Math.random() * 0.4 + 0.6;
+        
+        // Wing flutter jitter
+        this.jitterTimer = Math.floor(Math.random() * 60);
+        this.depth = Math.random() * 0.6 + 0.4; // 3D depth layer
+      }
+
+      update(time, mouse) {
+        // Natural firefly flutter: periodically pick a slight new wandering heading
+        this.jitterTimer--;
+        if (this.jitterTimer <= 0) {
+          this.targetVx = (Math.random() - 0.5) * 1.0;
+          this.targetVy = (Math.random() - 0.5) * 0.6 - 0.15;
+          this.jitterTimer = Math.floor(Math.random() * 80 + 30);
+        }
+
+        // Smooth interpolation toward target velocity
+        this.vx += (this.targetVx - this.vx) * 0.04;
+        this.vy += (this.targetVy - this.vy) * 0.04;
+
+        // Subtle micro-flutter
+        const microJitterX = (Math.random() - 0.5) * 0.25;
+        const microJitterY = (Math.random() - 0.5) * 0.25;
+
+        // Soft curiosity towards mouse cursor
+        if (mouse.active) {
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 260 && dist > 20) {
+            const force = (1 - dist / 260) * 0.06;
+            this.vx += (dx / dist) * force;
+            this.vy += (dy / dist) * force;
+          }
+        }
+
+        this.x += (this.vx + microJitterX) * this.depth;
+        this.y += (this.vy + microJitterY) * this.depth;
+
+        // Wrap around borders gently
+        if (this.x < -30) this.x = width + 20;
+        if (this.x > width + 30) this.x = -20;
+        if (this.y < -30) this.y = height + 20;
+        if (this.y > height + 30) this.y = -20;
+
+        // Update bioluminescent pulse
+        this.phase += this.flashSpeed;
+      }
+
+      draw(ctx) {
+        // Asymmetric pulse: sudden gentle flare up, lingering glow, slow fade
+        const sinVal = Math.sin(this.phase);
+        let brightness = Math.max(0, sinVal);
+        brightness = Math.pow(brightness, 2.5); // Sharpen flash curve
+
+        // Ambient resting lantern light (never 100% black)
+        const alpha = 0.08 + brightness * 0.92;
+        const currentSize = this.size * (0.8 + brightness * 0.7) * this.depth;
+
+        const { r, g, b } = this.color;
+
+        // 1. Soft wide bioluminescent outer glow
+        if (alpha > 0.15) {
+          const outerRadius = currentSize * (12 + brightness * 14);
+          const outerGrad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, outerRadius);
+          outerGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha * 0.45})`);
+          outerGrad.addColorStop(0.35, `rgba(${r}, ${g}, ${b}, ${alpha * 0.18})`);
+          outerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+          ctx.beginPath();
+          ctx.fillStyle = outerGrad;
+          ctx.arc(this.x, this.y, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 2. Bright intense inner halo
+        const innerRadius = currentSize * (3.5 + brightness * 3);
+        const innerGrad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, innerRadius);
+        innerGrad.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.95})`);
+        innerGrad.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`);
+        innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.beginPath();
+        ctx.fillStyle = innerGrad;
+        ctx.arc(this.x, this.y, innerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. Tiny radiant white core
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha * 1.2)})`;
+        ctx.arc(this.x, this.y, currentSize * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ignite() {
+        // Force firefly to flare up warmly
+        this.phase = Math.PI * 0.5;
+      }
+    }
+
+    // Floating background forest dust motes
+    const spores = [];
+    for (let i = 0; i < 90; i++) {
+      spores.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vy: -(Math.random() * 0.2 + 0.05),
+        vx: (Math.random() - 0.5) * 0.15,
+        size: Math.random() * 1.2 + 0.5,
+        alpha: Math.random() * 0.35 + 0.1
+      });
+    }
+
+    // Instantiate 140 fireflies
+    const fireflyCount = 140;
+    const fireflies = [];
+    for (let i = 0; i < fireflyCount; i++) {
+      fireflies.push(new Firefly());
+    }
+
+    // Interactive mouse tracking
+    const mouse = { x: width / 2, y: height / 2, active: false };
+    let mouseTimeout;
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+      clearTimeout(mouseTimeout);
+      mouseTimeout = setTimeout(() => {
+        mouse.active = false;
+      }, 3000);
+    });
+
+    // Web Audio gentle nocturnal chime
     let audioCtx = null;
     function playChime() {
       try {
@@ -118,189 +256,73 @@
         const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        const notes = [440, 523.25, 659.25, 783.99, 880, 1046.5];
+        const notes = [523.25, 659.25, 783.99, 880, 1046.5, 1318.5]; // C5, E5, G5, A5, C6, E6
         osc.frequency.setValueAtTime(notes[Math.floor(Math.random() * notes.length)], now);
         osc.type = 'sine';
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.8);
+        osc.stop(now + 1.2);
       } catch (e) {}
     }
 
-    // Particles
-    const particles = [];
-    for (let i = 0; i < 450; i++) {
-      const baseSize = Math.random() * 2.8 + 1.2;
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2,
-        baseSize,
-        color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-        pulsePhase: Math.random() * Math.PI * 2
-      });
-    }
-
-    // Glyphs
-    const glyphs = [];
-    for (let i = 0; i < 35; i++) {
-      glyphs.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        char: GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
-        size: Math.random() * 18 + 14,
-        color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-        rotation: Math.random() * Math.PI * 2,
-        rotSpeed: (Math.random() - 0.5) * 0.015
-      });
-    }
-
-    // Mouse sparkles
-    const sparkles = [];
-    let mouse = { x: width / 2, y: height / 2, active: false };
-
-    window.addEventListener('mousemove', (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-      mouse.active = true;
-      if (Math.random() > 0.3) {
-        sparkles.push({
-          x: e.clientX,
-          y: e.clientY,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
-          life: 35,
-          maxLife: 35,
-          color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-          size: Math.random() * 3 + 2
-        });
-      }
-    });
-
+    // Click to send ripple light wave igniting fireflies
     window.addEventListener('click', (e) => {
       playChime();
-      for (let i = 0; i < 45; i++) {
-        const angle = (i / 45) * Math.PI * 2;
-        const speed = Math.random() * 6 + 2;
-        sparkles.push({
-          x: e.clientX,
-          y: e.clientY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 50,
-          maxLife: 50,
-          color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-          size: Math.random() * 4 + 2
-        });
+      const clickX = e.clientX;
+      const clickY = e.clientY;
+
+      for (const f of fireflies) {
+        const dx = f.x - clickX;
+        const dy = f.y - clickY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 320) {
+          // Delay ignition slightly based on distance for ripple effect
+          setTimeout(() => {
+            f.ignite();
+          }, dist * 0.8);
+        }
       }
     });
 
+    // Main animation loop
     let time = 0;
     function animate() {
       requestAnimationFrame(animate);
-      time += 0.015;
+      time += 0.016;
 
-      ctx.fillStyle = 'rgba(3, 5, 12, 0.2)';
+      // Soft trailing night sky
+      ctx.fillStyle = 'rgba(2, 5, 8, 0.28)';
       ctx.fillRect(0, 0, width, height);
 
+      // Draw faint floating spores in background
+      ctx.save();
+      for (const s of spores) {
+        s.y += s.vy;
+        s.x += s.vx;
+        if (s.y < 0) s.y = height;
+        if (s.x < 0) s.x = width;
+        if (s.x > width) s.x = 0;
+
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(163, 230, 53, ${s.alpha * 0.5})`;
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Draw Fireflies with additive luminous blending
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-
-      // Draw Particles
-      for (const p of particles) {
-        const angle = Math.sin(p.x * 0.003 + time) + Math.cos(p.y * 0.003 + time);
-        p.vx += Math.cos(angle) * 0.04;
-        p.vy += Math.sin(angle) * 0.04;
-        p.vx *= 0.98;
-        p.vy *= 0.98;
-
-        if (mouse.active) {
-          const dx = mouse.x - p.x;
-          const dy = mouse.y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 200 && dist > 5) {
-            const force = (1 - dist / 200) * 0.15;
-            p.vx += (dx / dist) * force;
-            p.vy += (dy / dist) * force;
-          }
-        }
-
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
-
-        p.pulsePhase += 0.03;
-        const curSize = p.baseSize * (1 + Math.sin(p.pulsePhase) * 0.4);
-
-        ctx.beginPath();
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, curSize * 3);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.3, p.color);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grad;
-        ctx.arc(p.x, p.y, curSize * 3, 0, Math.PI * 2);
-        ctx.fill();
+      for (const f of fireflies) {
+        f.update(time, mouse);
+        f.draw(ctx);
       }
-
-      // Draw Glyphs
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (const g of glyphs) {
-        g.x += g.vx;
-        g.y += g.vy;
-        g.rotation += g.rotSpeed;
-
-        if (g.x < -30) g.x = width + 30;
-        if (g.x > width + 30) g.x = -30;
-        if (g.y < -30) g.y = height + 30;
-        if (g.y > height + 30) g.y = -30;
-
-        ctx.save();
-        ctx.translate(g.x, g.y);
-        ctx.rotate(g.rotation);
-        ctx.font = `${g.size}px serif`;
-        ctx.shadowColor = g.color;
-        ctx.shadowBlur = 15;
-        ctx.fillStyle = g.color;
-        ctx.globalAlpha = 0.7 + Math.sin(time * 2 + g.x) * 0.3;
-        ctx.fillText(g.char, 0, 0);
-        ctx.restore();
-      }
-
-      // Draw Sparkles
-      for (let i = sparkles.length - 1; i >= 0; i--) {
-        const s = sparkles[i];
-        s.x += s.vx;
-        s.y += s.vy;
-        s.life -= 1;
-        if (s.life <= 0) {
-          sparkles.splice(i, 1);
-          continue;
-        }
-        const prog = s.life / s.maxLife;
-        ctx.beginPath();
-        const sGrad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 2);
-        sGrad.addColorStop(0, '#ffffff');
-        sGrad.addColorStop(0.4, s.color);
-        sGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = sGrad;
-        ctx.globalAlpha = prog;
-        ctx.arc(s.x, s.y, s.size * 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
       ctx.restore();
     }
+
     animate();
   </script>
 </body>

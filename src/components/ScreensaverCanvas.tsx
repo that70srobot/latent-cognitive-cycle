@@ -1,42 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { sound } from '../utils/audio';
 
-interface ShinyParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  baseSize: number;
-  color: string;
-  alpha: number;
-  angle: number;
-  spin: number;
-  pulsePhase: number;
+interface FireflyRGB {
+  r: number;
+  g: number;
+  b: number;
 }
 
-interface DriftingGlyph {
+interface FireflyParticle {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  char: string;
+  targetVx: number;
+  targetVy: number;
   size: number;
-  alpha: number;
-  color: string;
-  rotation: number;
-  rotSpeed: number;
+  color: FireflyRGB;
+  phase: number;
+  flashSpeed: number;
+  jitterTimer: number;
+  depth: number;
 }
 
-interface SparkleTrail {
+interface Spore {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  life: number;
-  maxLife: number;
-  color: string;
   size: number;
+  alpha: number;
 }
 
 interface ScreensaverCanvasProps {
@@ -44,74 +36,64 @@ interface ScreensaverCanvasProps {
   onExit: () => void;
 }
 
-const SHINY_COLORS = [
-  '#00f2fe', // Cyan neon
-  '#4facfe', // Electric blue
-  '#a855f7', // Vivid purple
-  '#c084fc', // Soft violet
-  '#ec4899', // Hot magenta
-  '#38bdf8', // Sky glow
-  '#fbcfe8', // Starlight pink
-  '#fef08a', // Cosmic gold
+const FIREFLY_COLORS: FireflyRGB[] = [
+  { r: 190, g: 242, b: 100 }, // Lime glow
+  { r: 253, g: 224, b: 71 },  // Soft golden yellow
+  { r: 163, g: 230, b: 53 },  // Vibrant chartreuse
+  { r: 251, g: 191, b: 36 },  // Warm honey amber
+  { r: 110, g: 231, b: 183 }, // Soft emerald
 ];
-
-const GLYPH_POOL = ['Σ', '∞', 'ψ', '∇', 'λ', 'Ω', '∮', '≈', '⊗', '✨', '✦', '✳', '⟲', '⨁', '◈'];
 
 export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({ isActive, onExit }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const particlesRef = useRef<ShinyParticle[]>([]);
-  const glyphsRef = useRef<DriftingGlyph[]>([]);
-  const sparklesRef = useRef<SparkleTrail[]>([]);
+  const firefliesRef = useRef<FireflyParticle[]>([]);
+  const sporesRef = useRef<Spore[]>([]);
   const mousePosRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
   const [showHint, setShowHint] = useState(true);
 
-  // Initialize shiny particle pool
+  // Initialize fireflies
   useEffect(() => {
     if (!isActive) return;
 
     setShowHint(true);
-    const hideTimer = setTimeout(() => setShowHint(false), 3500);
+    const hideTimer = setTimeout(() => setShowHint(false), 4000);
 
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // 450 shiny floating cosmic particles
-    const particles: ShinyParticle[] = [];
-    for (let i = 0; i < 450; i++) {
-      const baseSize = Math.random() * 2.8 + 1.2;
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2,
-        size: baseSize,
-        baseSize,
-        color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-        alpha: Math.random() * 0.8 + 0.2,
-        angle: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.02,
-        pulsePhase: Math.random() * Math.PI * 2,
-      });
-    }
-    particlesRef.current = particles;
-
-    // 35 drifting cosmic glyphs
-    const glyphs: DriftingGlyph[] = [];
-    for (let i = 0; i < 35; i++) {
-      glyphs.push({
+    // 150 bioluminescent fireflies
+    const flies: FireflyParticle[] = [];
+    for (let i = 0; i < 150; i++) {
+      flies.push({
         x: Math.random() * width,
         y: Math.random() * height,
         vx: (Math.random() - 0.5) * 0.6,
-        vy: (Math.random() - 0.5) * 0.6,
-        char: GLYPH_POOL[Math.floor(Math.random() * GLYPH_POOL.length)],
-        size: Math.random() * 18 + 14,
-        alpha: Math.random() * 0.6 + 0.3,
-        color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-        rotation: Math.random() * Math.PI * 2,
-        rotSpeed: (Math.random() - 0.5) * 0.015,
+        vy: -(Math.random() * 0.4 + 0.15),
+        targetVx: (Math.random() - 0.5) * 0.6,
+        targetVy: -(Math.random() * 0.4 + 0.15),
+        size: Math.random() * 2.2 + 1.2,
+        color: FIREFLY_COLORS[Math.floor(Math.random() * FIREFLY_COLORS.length)],
+        phase: Math.random() * Math.PI * 2,
+        flashSpeed: Math.random() * 0.025 + 0.012,
+        jitterTimer: Math.floor(Math.random() * 60),
+        depth: Math.random() * 0.6 + 0.4,
       });
     }
-    glyphsRef.current = glyphs;
+    firefliesRef.current = flies;
+
+    // Floating twilight spores
+    const spores: Spore[] = [];
+    for (let i = 0; i < 80; i++) {
+      spores.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: -(Math.random() * 0.2 + 0.05),
+        size: Math.random() * 1.2 + 0.5,
+        alpha: Math.random() * 0.35 + 0.1,
+      });
+    }
+    sporesRef.current = spores;
 
     return () => clearTimeout(hideTimer);
   }, [isActive]);
@@ -126,115 +108,114 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({ isActive, 
     if (!ctx) return;
 
     let animId: number;
-    let time = 0;
 
     const render = () => {
       animId = requestAnimationFrame(render);
-      time += 0.015;
 
       const w = canvas.width;
       const h = canvas.height;
 
-      // Deep void with subtle motion trails
-      ctx.fillStyle = 'rgba(3, 5, 12, 0.2)';
+      // Soft trailing night sky
+      ctx.fillStyle = 'rgba(2, 5, 8, 0.28)';
       ctx.fillRect(0, 0, w, h);
 
+      // 1. DRAW SPORES
       ctx.save();
-      ctx.globalCompositeOperation = 'lighter'; // Makes everything glow and blend
+      for (const s of sporesRef.current) {
+        s.y += s.vy;
+        s.x += s.vx;
+        if (s.y < 0) s.y = h;
+        if (s.x < 0) s.x = w;
+        if (s.x > w) s.x = 0;
 
-      // 1. UPDATE & DRAW SHINY PARTICLES
-      for (const p of particlesRef.current) {
-        // Natural curved cosmic flow field
-        const flowAngle = Math.sin(p.x * 0.003 + time) + Math.cos(p.y * 0.003 + time);
-        p.vx += Math.cos(flowAngle) * 0.04;
-        p.vy += Math.sin(flowAngle) * 0.04;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(163, 230, 53, ${s.alpha * 0.5})`;
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
 
-        // Damping
-        p.vx *= 0.98;
-        p.vy *= 0.98;
+      // 2. DRAW FIREFLIES WITH ADDITIVE BIOLUMINESCENT GLOW
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
 
-        // Mouse interaction: gentle stardust attraction
+      for (const f of firefliesRef.current) {
+        // Wandering flutter
+        f.jitterTimer--;
+        if (f.jitterTimer <= 0) {
+          f.targetVx = (Math.random() - 0.5) * 1.0;
+          f.targetVy = (Math.random() - 0.5) * 0.6 - 0.15;
+          f.jitterTimer = Math.floor(Math.random() * 80 + 30);
+        }
+
+        f.vx += (f.targetVx - f.vx) * 0.04;
+        f.vy += (f.targetVy - f.vy) * 0.04;
+
+        const microJitterX = (Math.random() - 0.5) * 0.25;
+        const microJitterY = (Math.random() - 0.5) * 0.25;
+
+        // Curiosity toward cursor
         if (mousePosRef.current.active) {
-          const dx = mousePosRef.current.x - p.x;
-          const dy = mousePosRef.current.y - p.y;
+          const dx = mousePosRef.current.x - f.x;
+          const dy = mousePosRef.current.y - f.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 200 && dist > 5) {
-            const force = (1 - dist / 200) * 0.15;
-            p.vx += (dx / dist) * force;
-            p.vy += (dy / dist) * force;
+          if (dist < 260 && dist > 20) {
+            const force = (1 - dist / 260) * 0.06;
+            f.vx += (dx / dist) * force;
+            f.vy += (dy / dist) * force;
           }
         }
 
-        p.x += p.vx;
-        p.y += p.vy;
+        f.x += (f.vx + microJitterX) * f.depth;
+        f.y += (f.vy + microJitterY) * f.depth;
 
-        // Wrap around edges
-        if (p.x < 0) p.x = w;
-        if (p.x > w) p.x = 0;
-        if (p.y < 0) p.y = h;
-        if (p.y > h) p.y = 0;
+        // Wrap edges
+        if (f.x < -30) f.x = w + 20;
+        if (f.x > w + 30) f.x = -20;
+        if (f.y < -30) f.y = h + 20;
+        if (f.y > h + 30) f.y = -20;
 
-        // Pulse size and glow
-        p.pulsePhase += 0.03;
-        const currentSize = p.baseSize * (1 + Math.sin(p.pulsePhase) * 0.4);
+        f.phase += f.flashSpeed;
 
-        // Draw glowing particle
-        ctx.beginPath();
-        const radGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, currentSize * 3);
-        radGrad.addColorStop(0, '#ffffff');
-        radGrad.addColorStop(0.3, p.color);
-        radGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = radGrad;
-        ctx.arc(p.x, p.y, currentSize * 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
+        // Bioluminescent flash curve
+        const sinVal = Math.sin(f.phase);
+        let brightness = Math.max(0, sinVal);
+        brightness = Math.pow(brightness, 2.5);
 
-      // 2. UPDATE & DRAW DRIFTING GLYPHS
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (const g of glyphsRef.current) {
-        g.x += g.vx;
-        g.y += g.vy;
-        g.rotation += g.rotSpeed;
+        const alpha = 0.08 + brightness * 0.92;
+        const currentSize = f.size * (0.8 + brightness * 0.7) * f.depth;
+        const { r, g, b } = f.color;
 
-        if (g.x < -30) g.x = w + 30;
-        if (g.x > w + 30) g.x = -30;
-        if (g.y < -30) g.y = h + 30;
-        if (g.y > h + 30) g.y = -30;
+        // Outer soft glow
+        if (alpha > 0.15) {
+          const outerRadius = currentSize * (12 + brightness * 14);
+          const outerGrad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, outerRadius);
+          outerGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha * 0.45})`);
+          outerGrad.addColorStop(0.35, `rgba(${r}, ${g}, ${b}, ${alpha * 0.18})`);
+          outerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-        ctx.save();
-        ctx.translate(g.x, g.y);
-        ctx.rotate(g.rotation);
-        ctx.font = `${g.size}px serif`;
-        ctx.shadowColor = g.color;
-        ctx.shadowBlur = 15;
-        ctx.fillStyle = g.color;
-        ctx.globalAlpha = g.alpha * (0.8 + Math.sin(time * 2 + g.x) * 0.2);
-        ctx.fillText(g.char, 0, 0);
-        ctx.restore();
-      }
-
-      // 3. MOUSE SPARKLE TRAILS
-      for (let i = sparklesRef.current.length - 1; i >= 0; i--) {
-        const s = sparklesRef.current[i];
-        s.x += s.vx;
-        s.y += s.vy;
-        s.life -= 1;
-
-        if (s.life <= 0) {
-          sparklesRef.current.splice(i, 1);
-          continue;
+          ctx.beginPath();
+          ctx.fillStyle = outerGrad;
+          ctx.arc(f.x, f.y, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
         }
 
-        const progress = s.life / s.maxLife;
+        // Inner radiant halo
+        const innerRadius = currentSize * (3.5 + brightness * 3);
+        const innerGrad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, innerRadius);
+        innerGrad.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.95})`);
+        innerGrad.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`);
+        innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
         ctx.beginPath();
-        const sGrad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 2);
-        sGrad.addColorStop(0, '#ffffff');
-        sGrad.addColorStop(0.4, s.color);
-        sGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = sGrad;
-        ctx.globalAlpha = progress;
-        ctx.arc(s.x, s.y, s.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = innerGrad;
+        ctx.arc(f.x, f.y, innerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White core
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha * 1.2)})`;
+        ctx.arc(f.x, f.y, currentSize * 0.7, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -246,7 +227,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({ isActive, 
     return () => cancelAnimationFrame(animId);
   }, [isActive]);
 
-  // Window Resize & Mouse movement
+  // Window Resize, Mouse movement, Click ripple
   useEffect(() => {
     if (!isActive) return;
 
@@ -259,45 +240,26 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({ isActive, 
 
     const handleMouseMove = (e: MouseEvent) => {
       mousePosRef.current = { x: e.clientX, y: e.clientY, active: true };
-
-      // Emit new shiny stardust sparkles on move
-      if (Math.random() > 0.4) {
-        sparklesRef.current.push({
-          x: e.clientX,
-          y: e.clientY,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
-          life: 35,
-          maxLife: 35,
-          color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-          size: Math.random() * 3 + 2,
-        });
-      }
     };
 
     const handleMouseLeave = () => {
       mousePosRef.current.active = false;
     };
 
-    const handleClick = () => {
-      // Create a shockwave of stardust!
-      sound.playTokenChime(1.2);
-      const mx = mousePosRef.current.x || window.innerWidth / 2;
-      const my = mousePosRef.current.y || window.innerHeight / 2;
+    const handleClick = (e: MouseEvent) => {
+      sound.playTokenChime(1.1);
+      const clickX = e.clientX;
+      const clickY = e.clientY;
 
-      for (let i = 0; i < 40; i++) {
-        const angle = (i / 40) * Math.PI * 2;
-        const speed = Math.random() * 6 + 3;
-        sparklesRef.current.push({
-          x: mx,
-          y: my,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 50,
-          maxLife: 50,
-          color: SHINY_COLORS[Math.floor(Math.random() * SHINY_COLORS.length)],
-          size: Math.random() * 4 + 2,
-        });
+      for (const f of firefliesRef.current) {
+        const dx = f.x - clickX;
+        const dy = f.y - clickY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 340) {
+          setTimeout(() => {
+            f.phase = Math.PI * 0.5; // ignite
+          }, dist * 0.8);
+        }
       }
     };
 
@@ -315,7 +277,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({ isActive, 
     };
   }, [isActive]);
 
-  // Keyboard shortcut: Press Escape or Space to exit
+  // Keyboard shortcut: Press Escape or Space or S to exit
   useEffect(() => {
     if (!isActive) return;
 
@@ -332,28 +294,28 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({ isActive, 
   if (!isActive) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#03050c] overflow-hidden cursor-crosshair">
+    <div className="fixed inset-0 z-50 bg-[#020508] overflow-hidden cursor-crosshair">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 
-      {/* Floating Exit Button */}
+      {/* Subtle Exit Button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onExit();
         }}
-        className="absolute top-6 right-6 z-10 px-4 py-2 rounded-full bg-slate-900/80 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-950 hover:border-cyan-300 backdrop-blur-md text-xs font-mono tracking-wider transition-all shadow-xl shadow-cyan-500/20"
+        className="absolute top-6 right-6 z-10 px-4 py-2 rounded-full bg-slate-950/70 border border-lime-500/30 text-lime-300 hover:bg-slate-900 hover:border-lime-400 backdrop-blur-md text-xs font-mono tracking-wider transition-all shadow-xl shadow-lime-950/30"
       >
         ✕ Exit Screensaver
       </button>
 
-      {/* Ambient Hint Banner (fades out after 3.5 seconds) */}
+      {/* Ambient Hint Banner */}
       <div
-        className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-5 py-2.5 rounded-full bg-slate-950/80 border border-slate-800 backdrop-blur-xl text-xs font-mono text-slate-300 pointer-events-none transition-opacity duration-1000 ${
+        className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-5 py-2.5 rounded-full bg-slate-950/80 border border-lime-500/30 backdrop-blur-xl text-xs font-mono text-lime-200 pointer-events-none transition-opacity duration-1000 ${
           showHint ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-        <span>Screensaver Active · Move mouse or click for stardust · Press Esc to wake</span>
+        <span className="w-2 h-2 rounded-full bg-lime-400 animate-ping" />
+        <span>Bioluminescent Fireflies · Move cursor to attract · Click to ignite pulse</span>
       </div>
     </div>
   );
