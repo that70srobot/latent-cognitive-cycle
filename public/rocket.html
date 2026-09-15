@@ -194,16 +194,30 @@
       <div class="hud-metric" style="margin-top: 6px;">LEVEL: <span id="levelDisplay" style="color: #38bdf8;">1 / 4</span></div>
     </div>
 
-    <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 220px; pointer-events: auto;">
-      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px;">
-        <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">🤖 LLM AUTOPILOT</span>
-        <label style="position: relative; display: inline-block; width: 38px; height: 20px; cursor: pointer;">
+    <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 290px; pointer-events: auto;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+        <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">🤖 AI PILOT</span>
+        <select id="aiModeSelect" style="background: #0f172a; color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-size: 11px; padding: 2px 6px; outline: none;">
+          <option value="rl">🧠 Self-Learning (Q-Learning RL)</option>
+          <option value="ollama">🦙 Ollama Local LLM</option>
+          <option value="heuristic">🚀 Algorithmic Guidance</option>
+        </select>
+        <label style="position: relative; display: inline-block; width: 34px; height: 18px; cursor: pointer;">
           <input type="checkbox" id="aiToggle" style="opacity: 0; width: 0; height: 0;">
           <span id="aiSlider" style="position: absolute; cursor: pointer; inset: 0; background-color: #334155; border-radius: 20px; transition: .3s; border: 1px solid #64748b;"></span>
         </label>
       </div>
-      <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        Mode: Human Pilot. Toggle ON for LLM Copilot.
+
+      <!-- Self-Learning Learning Telemetry -->
+      <div id="aiLearningStats" style="display: flex; justify-content: space-around; font-size: 10px; color: #94a3b8; margin-bottom: 4px; border-top: 1px solid rgba(56, 189, 248, 0.2); padding-top: 4px;">
+        <span>EPISODE: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
+        <span>SUCCESS: <strong id="aiSuccessRateDisplay" style="color: #4ade80;">0%</strong></span>
+        <span>EPSILON: <strong id="aiEpsilonDisplay" style="color: #f59e0b;">1.00</strong></span>
+        <span>Q-STATES: <strong id="aiStatesDisplay" style="color: #c084fc;">0</strong></span>
+      </div>
+
+      <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 290px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        Mode: Human Pilot. Toggle ON for AI Pilot.
       </div>
     </div>
 
@@ -257,6 +271,11 @@
     const aiToggle = document.getElementById('aiToggle');
     const aiSlider = document.getElementById('aiSlider');
     const aiThought = document.getElementById('aiThought');
+    const aiModeSelect = document.getElementById('aiModeSelect');
+    const aiEpisodeDisplay = document.getElementById('aiEpisodeDisplay');
+    const aiSuccessRateDisplay = document.getElementById('aiSuccessRateDisplay');
+    const aiEpsilonDisplay = document.getElementById('aiEpsilonDisplay');
+    const aiStatesDisplay = document.getElementById('aiStatesDisplay');
 
     let aiAutopilotActive = false;
     let aiCycleCounter = 0;
@@ -266,7 +285,7 @@
       aiAutopilotActive = e.target.checked;
       if (aiAutopilotActive) {
         aiSlider.style.backgroundColor = '#0284c7';
-        aiThought.innerText = "LLM Autopilot ONLINE. Executing trajectory analysis...";
+        updateAiStatusText();
         if (gameState === 'MENU' || gameState === 'WON' || gameState === 'GAMEOVER') {
           modalBtn.click();
         }
@@ -279,6 +298,22 @@
         sound.stopThrust();
       }
     });
+
+    aiModeSelect.addEventListener('change', () => {
+      updateAiStatusText();
+    });
+
+    function updateAiStatusText() {
+      if (!aiAutopilotActive) return;
+      const mode = aiModeSelect.value;
+      if (mode === 'rl') {
+        aiThought.innerText = `🧠 Q-Learning Pilot Active: Ep #${rlAgent.episodes} | Explr: ${(rlAgent.epsilon * 100).toFixed(0)}%`;
+      } else if (mode === 'ollama') {
+        aiThought.innerText = `🦙 Ollama Local LLM Pilot: Querying llama3.1 on port 11434...`;
+      } else {
+        aiThought.innerText = `🚀 Heuristic Flight Guidance Computer Online`;
+      }
+    }
 
     let width, height;
     function resize() {
@@ -802,6 +837,8 @@
           initLevel(1);
           gameState = 'PLAYING';
         };
+      if (typeof rlAgent !== 'undefined') {
+        rlAgent.recordEpisode(true);
       }
       modal.style.display = 'flex';
       gameState = 'WON';
@@ -843,6 +880,9 @@
       };
       modal.style.display = 'flex';
       gameState = 'GAMEOVER';
+      if (typeof rlAgent !== 'undefined') {
+        rlAgent.recordEpisode(false);
+      }
       if (aiAutopilotActive) {
         aiThought.innerText = `💥 Crash detected. Re-evaluating flight vectors and retrying...`;
         setTimeout(() => {
@@ -939,115 +979,342 @@
       tiltDisplay.className = Math.abs(angleDeg) <= 18 ? 'safe' : 'danger';
     }
 
-    // --- LLM AI COPILOT AUTOPILOT ENGINE ---
+    // ==========================================
+    // 🧠 REINFORCEMENT LEARNING (Q-LEARNING) ENGINE
+    // ==========================================
+    class QLearningAgent {
+      constructor() {
+        this.actions = [
+          { name: 'COAST', thrust: false, left: false, right: false },
+          { name: 'THRUST', thrust: true, left: false, right: false },
+          { name: 'LEFT', thrust: false, left: true, right: false },
+          { name: 'RIGHT', thrust: false, left: false, right: true },
+          { name: 'THRUST_LEFT', thrust: true, left: true, right: false },
+          { name: 'THRUST_RIGHT', thrust: true, left: false, right: true }
+        ];
+
+        this.alpha = 0.22;       // Learning rate
+        this.gamma = 0.94;       // Discount factor
+        this.epsilon = 0.65;     // Initial exploration rate
+        this.minEpsilon = 0.05;  // Exploitation threshold
+        this.decay = 0.985;      // Epsilon decay per episode
+
+        this.qTable = {};
+        this.episodes = 0;
+        this.wins = 0;
+        this.recentHistory = []; // Last 20 outcomes
+
+        this.prevState = null;
+        this.prevActionIdx = null;
+        this.prevDistToPad = null;
+
+        this.loadWeights();
+      }
+
+      // Discretize continuous telemetry into states
+      discretize(r, pad, asts) {
+        const dx = (pad.x + pad.width / 2) - r.x;
+        const dy = pad.y - r.y;
+
+        // Bins:
+        // dx: far-left, mid-left, on-pad, mid-right, far-right
+        let dxBin;
+        if (dx < -120) dxBin = -2;
+        else if (dx < -25) dxBin = -1;
+        else if (dx <= 25) dxBin = 0;
+        else if (dx <= 120) dxBin = 1;
+        else dxBin = 2;
+
+        // dy: high, mid, low, touchdown
+        let dyBin;
+        if (dy > 300) dyBin = 3;
+        else if (dy > 140) dyBin = 2;
+        else if (dy > 45) dyBin = 1;
+        else dyBin = 0;
+
+        // vy: fast-up, float, slow-descent, fast-descent
+        let vyBin;
+        if (r.vy < -1.0) vyBin = 0;
+        else if (r.vy < 0.8) vyBin = 1;
+        else if (r.vy <= 2.2) vyBin = 2; // Safe landing zone
+        else vyBin = 3; // Dangerously fast
+
+        // vx: moving-left, stationary, moving-right
+        let vxBin = Math.abs(r.vx) < 0.6 ? 0 : (r.vx > 0 ? 1 : -1);
+
+        // tilt: aligned upright (-PI/2), tilted-left, tilted-right
+        let angleDiff = r.angle - (-Math.PI / 2);
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        let tiltBin = Math.abs(angleDiff) < 0.22 ? 0 : (angleDiff > 0 ? 1 : -1);
+
+        // Nearest asteroid proximity
+        let astThreat = 0;
+        for (const a of asts) {
+          if (Math.hypot(a.x - r.x, a.y - r.y) < 95) {
+            astThreat = 1;
+            break;
+          }
+        }
+
+        return `${dxBin}:${dyBin}:${vyBin}:${vxBin}:${tiltBin}:${astThreat}`;
+      }
+
+      getQValues(state) {
+        if (!this.qTable[state]) {
+          // Initialize optimistically or neutral
+          this.qTable[state] = new Array(this.actions.length).fill(0.0);
+        }
+        return this.qTable[state];
+      }
+
+      selectAction(state) {
+        const qVals = this.getQValues(state);
+        // Epsilon-Greedy selection
+        if (Math.random() < this.epsilon) {
+          // Exploration: pick random action
+          const idx = Math.floor(Math.random() * this.actions.length);
+          return { action: this.actions[idx], index: idx, explored: true };
+        } else {
+          // Exploitation: pick highest learned Q-value
+          let maxQ = -Infinity;
+          let bestIdx = 0;
+          for (let i = 0; i < qVals.length; i++) {
+            if (qVals[i] > maxQ) {
+              maxQ = qVals[i];
+              bestIdx = i;
+            }
+          }
+          return { action: this.actions[bestIdx], index: bestIdx, explored: false, qValue: maxQ };
+        }
+      }
+
+      // Step update with immediate shaped reward
+      stepUpdate(currentState, reward) {
+        if (this.prevState !== null && this.prevActionIdx !== null) {
+          const prevQ = this.getQValues(this.prevState);
+          const currQ = this.getQValues(currentState);
+          const maxNextQ = Math.max(...currQ);
+
+          // Bellman Equation: Q(s,a) = Q(s,a) + alpha * [reward + gamma * max(Q(s',a')) - Q(s,a)]
+          prevQ[this.prevActionIdx] += this.alpha * (reward + this.gamma * maxNextQ - prevQ[this.prevActionIdx]);
+        }
+      }
+
+      // Episode terminal reward / penalty and weights persistence
+      recordEpisode(success) {
+        this.episodes++;
+        if (success) this.wins++;
+        this.recentHistory.push(success ? 1 : 0);
+        if (this.recentHistory.length > 25) this.recentHistory.shift();
+
+        // Calculate terminal reward
+        const terminalReward = success ? 100 : -80;
+        if (this.prevState !== null && this.prevActionIdx !== null) {
+          const prevQ = this.getQValues(this.prevState);
+          prevQ[this.prevActionIdx] += this.alpha * (terminalReward - prevQ[this.prevActionIdx]);
+        }
+
+        // Decay exploration rate as experience grows
+        this.epsilon = Math.max(this.minEpsilon, this.epsilon * this.decay);
+
+        this.prevState = null;
+        this.prevActionIdx = null;
+        this.prevDistToPad = null;
+
+        this.updateHUDStats();
+        this.saveWeights();
+      }
+
+      updateHUDStats() {
+        aiEpisodeDisplay.innerText = this.episodes;
+        const rate = this.recentHistory.length > 0 
+          ? Math.round((this.recentHistory.reduce((a, b) => a + b, 0) / this.recentHistory.length) * 100) 
+          : 0;
+        aiSuccessRateDisplay.innerText = `${rate}%`;
+        aiEpsilonDisplay.innerText = this.epsilon.toFixed(2);
+        aiStatesDisplay.innerText = Object.keys(this.qTable).length;
+      }
+
+      saveWeights() {
+        try {
+          // Keep persistent state in localStorage so the agent remembers across reloads!
+          const data = {
+            qTable: this.qTable,
+            episodes: this.episodes,
+            wins: this.wins,
+            epsilon: this.epsilon
+          };
+          localStorage.setItem('cosmic_lander_q_learning', JSON.stringify(data));
+        } catch (e) {}
+      }
+
+      loadWeights() {
+        try {
+          const raw = localStorage.getItem('cosmic_lander_q_learning');
+          if (raw) {
+            const data = JSON.parse(raw);
+            this.qTable = data.qTable || {};
+            this.episodes = data.episodes || 0;
+            this.wins = data.wins || 0;
+            this.epsilon = data.epsilon !== undefined ? data.epsilon : 0.65;
+            setTimeout(() => this.updateHUDStats(), 100);
+          }
+        } catch (e) {}
+      }
+    }
+
+    const rlAgent = new QLearningAgent();
+
+    // ==========================================
+    // 🦙 OLLAMA REAL-TIME LOCAL LLM CONNECTOR
+    // ==========================================
+    let ollamaPending = false;
+    let lastOllamaDecision = null;
+    let lastOllamaTime = 0;
+
+    async function queryOllamaPilot(r, pad, asts) {
+      if (ollamaPending) return;
+      // Query every 650ms for low latency
+      if (Date.now() - lastOllamaTime < 650) return;
+
+      ollamaPending = true;
+      lastOllamaTime = Date.now();
+
+      const dx = Math.round((pad.x + pad.width / 2) - r.x);
+      const dy = Math.round(pad.y - r.y);
+      const vy = Number(r.vy.toFixed(1));
+      const vx = Number(r.vx.toFixed(1));
+
+      const prompt = `Rocket state: dy_to_pad=${dy}px, dx_to_pad=${dx}px, vy=${vy}m/s, vx=${vx}m/s. Landing pad requires vy<=2.0 and vx<=1.0. Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
+
+      try {
+        const res = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama3.1:8b',
+            prompt: prompt,
+            stream: false,
+            format: 'json',
+            options: { temperature: 0.1, num_predict: 40 }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const parsed = JSON.parse(data.response);
+          lastOllamaDecision = parsed;
+          aiThought.innerText = `🦙 Ollama: "${parsed.reason || 'adjusting telemetry'}"`;
+        } else {
+          aiThought.innerText = `⚠️ Ollama HTTP ${res.status}: Check port 11434`;
+        }
+      } catch (err) {
+        aiThought.innerText = `⚠️ Ollama connection offline. Run 'ollama serve'`;
+      } finally {
+        ollamaPending = false;
+      }
+    }
+
+    // ==========================================
+    // 🕹️ MAIN AI COPILOT ARBITER
+    // ==========================================
     function runLLMPilotLogic() {
       aiCycleCounter++;
-      const padCenterX = landingPad.x + landingPad.width / 2;
-      const padTopY = landingPad.y;
+      const mode = aiModeSelect.value;
 
-      const dxToPad = padCenterX - rocket.x;
-      const dyToPad = padTopY - rocket.y;
-      const distToPad = Math.hypot(dxToPad, dyToPad);
+      if (mode === 'rl') {
+        // --- Self-Learning Q-Learning Reinforcement Learning Mode ---
+        const padCenterX = landingPad.x + landingPad.width / 2;
+        const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
+        const state = rlAgent.discretize(rocket, landingPad, asteroids);
 
-      // Desired horizontal speed proportional to distance, capped to safety margins
-      let targetVx = Math.sign(dxToPad) * Math.min(2.8, Math.abs(dxToPad) * 0.015);
-      // When very close to pad horizontally, kill horizontal drift
-      if (Math.abs(dxToPad) < 30) {
-        targetVx = Math.sign(dxToPad) * 0.4;
-      }
-      const vxDiff = targetVx - rocket.vx;
-
-      // Calculate desired rocket tilt angle (-PI/2 is straight up)
-      // Positive tilt leans right (+X), negative tilt leans left (-X)
-      let targetAngleOffset = vxDiff * 0.35;
-      targetAngleOffset = Math.max(-0.45, Math.min(0.45, targetAngleOffset)); // clamp to safe ~25 deg
-      let desiredAngle = -Math.PI / 2 + targetAngleOffset;
-
-      // Asteroid avoidance override
-      let asteroidThreat = null;
-      let minThreatDist = 120;
-      for (const ast of asteroids) {
-        const adx = ast.x - rocket.x;
-        const ady = ast.y - rocket.y;
-        const adist = Math.hypot(adx, ady);
-        // If asteroid is closing in and directly ahead along velocity vector
-        if (adist < minThreatDist && ady > -30) {
-          minThreatDist = adist;
-          asteroidThreat = { ast, adx, ady, adist };
+        // Immediate reward shaping:
+        // + reward for reducing distance to pad
+        // - penalty for falling too fast (vy > 2.2)
+        // - penalty for severe tilt near ground
+        let stepReward = 0;
+        if (rlAgent.prevDistToPad !== null) {
+          stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
         }
-      }
+        if (rocket.y > height - 120 && rocket.vy > 2.2) {
+          stepReward -= (rocket.vy - 2.2) * 1.5;
+        }
+        if (rocket.fuel <= 0) {
+          stepReward -= 5;
+        }
 
-      if (asteroidThreat) {
-        // Steer away from threatening asteroid
-        desiredAngle += (asteroidThreat.adx > 0 ? -0.4 : 0.4);
+        rlAgent.stepUpdate(state, stepReward);
+
+        const choice = rlAgent.selectAction(state);
+        keys.thrust = choice.action.thrust && rocket.fuel > 0;
+        keys.left = choice.action.left;
+        keys.right = choice.action.right;
+
+        if (keys.thrust) sound.startThrust();
+        else sound.stopThrust();
+
+        rlAgent.prevState = state;
+        rlAgent.prevActionIdx = choice.index;
+        rlAgent.prevDistToPad = currentDist;
+
         if (aiCycleCounter % 15 === 0) {
-          aiThought.innerText = `🚨 LLM Evasive Maneuver: Asteroid detected at ${Math.round(asteroidThreat.adist)}m`;
+          const typeStr = choice.explored ? '🎲 Explored' : '🧠 Exploit (Q)';
+          aiThought.innerText = `${typeStr} [${choice.action.name}] | Ep #${rlAgent.episodes} | Q-States: ${Object.keys(rlAgent.qTable).length}`;
+          rlAgent.updateHUDStats();
         }
-      }
 
-      // Rotate rocket towards desired angle
-      let currentAngle = rocket.angle;
-      let angleDiff = desiredAngle - currentAngle;
-      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      } else if (mode === 'ollama') {
+        // --- Local Ollama LLM Mode ---
+        queryOllamaPilot(rocket, landingPad, asteroids);
+        if (lastOllamaDecision) {
+          keys.thrust = lastOllamaDecision.thrust && rocket.fuel > 0;
+          keys.left = lastOllamaDecision.turn === 'left';
+          keys.right = lastOllamaDecision.turn === 'right';
+          if (keys.thrust) sound.startThrust();
+          else sound.stopThrust();
+        }
 
-      if (angleDiff > 0.08) {
-        keys.right = true;
-        keys.left = false;
-      } else if (angleDiff < -0.08) {
-        keys.left = true;
-        keys.right = false;
       } else {
-        keys.left = false;
-        keys.right = false;
-      }
+        // --- Algorithmic Guidance (Heuristic baseline) ---
+        const padCenterX = landingPad.x + landingPad.width / 2;
+        const padTopY = landingPad.y;
+        const dxToPad = padCenterX - rocket.x;
+        const dyToPad = padTopY - rocket.y;
 
-      // Altitude & Descent Speed Management
-      // Safe descent profile: slows down as rocket approaches landing pad
-      let safeVy = 2.0;
-      if (dyToPad > 250) safeVy = 2.8;
-      else if (dyToPad > 120) safeVy = 1.8;
-      else if (dyToPad > 50) safeVy = 1.2;
-      else safeVy = 0.8;
+        let targetVx = Math.sign(dxToPad) * Math.min(2.8, Math.abs(dxToPad) * 0.015);
+        if (Math.abs(dxToPad) < 30) targetVx = Math.sign(dxToPad) * 0.4;
+        const vxDiff = targetVx - rocket.vx;
 
-      let fireThrust = false;
+        let targetAngleOffset = Math.max(-0.45, Math.min(0.45, vxDiff * 0.35));
+        let desiredAngle = -Math.PI / 2 + targetAngleOffset;
 
-      // Trigger thrust if falling too fast, or if tilted upward and needing altitude
-      if (rocket.vy > safeVy) {
-        fireThrust = true;
-      } else if (dyToPad < 40 && Math.abs(dxToPad) > 60 && rocket.vy > 0) {
-        // Stay airborne longer to allow horizontal traversal towards pad
-        fireThrust = true;
-      }
+        let currentAngle = rocket.angle;
+        let angleDiff = desiredAngle - currentAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-      // When directly above landing zone, force upright attitude
-      if (Math.abs(dxToPad) < landingPad.width * 0.4 && dyToPad < 100) {
-        desiredAngle = -Math.PI / 2;
-        if (rocket.vy > 1.2) fireThrust = true;
-      }
+        keys.right = angleDiff > 0.08;
+        keys.left = angleDiff < -0.08;
 
-      if (fireThrust && rocket.fuel > 0) {
-        keys.thrust = true;
-        sound.startThrust();
-      } else {
-        keys.thrust = false;
-        sound.stopThrust();
-      }
+        let safeVy = dyToPad > 250 ? 2.8 : (dyToPad > 120 ? 1.8 : 1.0);
+        let fireThrust = (rocket.vy > safeVy) || (dyToPad < 40 && Math.abs(dxToPad) > 60 && rocket.vy > 0);
 
-      // Telemetry thought updates
-      if (aiCycleCounter % 20 === 0 && !asteroidThreat) {
-        if (dyToPad < 80 && Math.abs(dxToPad) < landingPad.width / 2) {
-          aiThought.innerText = `🎯 Final Descent: V=${rocket.vy.toFixed(1)} m/s, Pad Align=${Math.round(Math.abs(dxToPad))}px`;
-        } else if (Math.abs(dxToPad) > 100) {
-          aiThought.innerText = `🧭 Vectoring: Aligning trajectory towards Pad (${Math.round(dxToPad)}px)`;
+        if (fireThrust && rocket.fuel > 0) {
+          keys.thrust = true;
+          sound.startThrust();
         } else {
-          aiThought.innerText = `🚀 Controlled Orbit: V-Descent=${rocket.vy.toFixed(1)} (Max safe=${safeVy.toFixed(1)})`;
+          keys.thrust = false;
+          sound.stopThrust();
+        }
+
+        if (aiCycleCounter % 20 === 0) {
+          aiThought.innerText = `🚀 Heuristic: Aligning Pad (${Math.round(dxToPad)}px) | V=${rocket.vy.toFixed(1)} m/s`;
         }
       }
     }
 
     function drawTrajectoryForecast(ctx) {
-      // Predict 40 ticks into the future under current physics
       ctx.save();
       ctx.beginPath();
       let simX = rocket.x;
@@ -1057,7 +1324,7 @@
       ctx.moveTo(simX, simY);
 
       for (let i = 0; i < 40; i++) {
-        simVy += 0.038; // gravity
+        simVy += 0.038;
         simVx *= 0.998;
         simVy *= 0.998;
         simX += simVx;
@@ -1070,7 +1337,6 @@
       ctx.setLineDash([4, 4]);
       ctx.stroke();
 
-      // Predicted impact point
       ctx.beginPath();
       ctx.arc(simX, simY, 3, 0, Math.PI * 2);
       ctx.fillStyle = '#38bdf8';
