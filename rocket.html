@@ -191,11 +191,20 @@
         <span>FUEL:</span>
         <div class="bar-outer"><div id="fuelBar" class="bar-fuel"></div></div>
       </div>
-      <div class="bar-container">
-        <span>HULL:</span>
-        <div class="bar-outer"><div id="shieldBar" class="bar-shield"></div></div>
-      </div>
       <div class="hud-metric" style="margin-top: 6px;">LEVEL: <span id="levelDisplay" style="color: #38bdf8;">1 / 4</span></div>
+    </div>
+
+    <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 220px; pointer-events: auto;">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px;">
+        <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">🤖 LLM AUTOPILOT</span>
+        <label style="position: relative; display: inline-block; width: 38px; height: 20px; cursor: pointer;">
+          <input type="checkbox" id="aiToggle" style="opacity: 0; width: 0; height: 0;">
+          <span id="aiSlider" style="position: absolute; cursor: pointer; inset: 0; background-color: #334155; border-radius: 20px; transition: .3s; border: 1px solid #64748b;"></span>
+        </label>
+      </div>
+      <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        Mode: Human Pilot. Toggle ON for LLM Copilot.
+      </div>
     </div>
 
     <div class="hud-panel" style="text-align: right;">
@@ -245,6 +254,31 @@
     const modalTitle = document.getElementById('modalTitle');
     const modalDesc = document.getElementById('modalDesc');
     const modalBtn = document.getElementById('modalBtn');
+    const aiToggle = document.getElementById('aiToggle');
+    const aiSlider = document.getElementById('aiSlider');
+    const aiThought = document.getElementById('aiThought');
+
+    let aiAutopilotActive = false;
+    let aiCycleCounter = 0;
+    let aiDecisionReason = "Calibrating guidance computers...";
+
+    aiToggle.addEventListener('change', (e) => {
+      aiAutopilotActive = e.target.checked;
+      if (aiAutopilotActive) {
+        aiSlider.style.backgroundColor = '#0284c7';
+        aiThought.innerText = "LLM Autopilot ONLINE. Executing trajectory analysis...";
+        if (gameState === 'MENU' || gameState === 'WON' || gameState === 'GAMEOVER') {
+          modalBtn.click();
+        }
+      } else {
+        aiSlider.style.backgroundColor = '#334155';
+        aiThought.innerText = "Autopilot Standby. Human manual control restored.";
+        keys.thrust = false;
+        keys.left = false;
+        keys.right = false;
+        sound.stopThrust();
+      }
+    });
 
     let width, height;
     function resize() {
@@ -771,6 +805,14 @@
       }
       modal.style.display = 'flex';
       gameState = 'WON';
+      if (aiAutopilotActive) {
+        aiThought.innerText = `🏆 Sector touchdown achieved! Auto-launching next mission...`;
+        setTimeout(() => {
+          if (aiAutopilotActive && gameState === 'WON') {
+            modalBtn.click();
+          }
+        }, 1800);
+      }
     }
 
     function explodeRocket(reason) {
@@ -801,6 +843,14 @@
       };
       modal.style.display = 'flex';
       gameState = 'GAMEOVER';
+      if (aiAutopilotActive) {
+        aiThought.innerText = `💥 Crash detected. Re-evaluating flight vectors and retrying...`;
+        setTimeout(() => {
+          if (aiAutopilotActive && gameState === 'GAMEOVER') {
+            modalBtn.click();
+          }
+        }, 2200);
+      }
     }
 
     modalBtn.onclick = () => {
@@ -849,9 +899,15 @@
         ast.draw(ctx);
       });
 
-      // Rocket
+      // Rocket & AI Pilot Computation
       if (!rocket.crashed) {
+        if (aiAutopilotActive && gameState === 'PLAYING') {
+          runLLMPilotLogic();
+        }
         rocket.update();
+        if (aiAutopilotActive) {
+          drawTrajectoryForecast(ctx);
+        }
         rocket.draw(ctx);
         if (gameState === 'PLAYING') checkCollisions();
       }
@@ -881,6 +937,145 @@
       while (angleDeg < -180) angleDeg += 360;
       tiltDisplay.innerText = `${angleDeg}°`;
       tiltDisplay.className = Math.abs(angleDeg) <= 18 ? 'safe' : 'danger';
+    }
+
+    // --- LLM AI COPILOT AUTOPILOT ENGINE ---
+    function runLLMPilotLogic() {
+      aiCycleCounter++;
+      const padCenterX = landingPad.x + landingPad.width / 2;
+      const padTopY = landingPad.y;
+
+      const dxToPad = padCenterX - rocket.x;
+      const dyToPad = padTopY - rocket.y;
+      const distToPad = Math.hypot(dxToPad, dyToPad);
+
+      // Desired horizontal speed proportional to distance, capped to safety margins
+      let targetVx = Math.sign(dxToPad) * Math.min(2.8, Math.abs(dxToPad) * 0.015);
+      // When very close to pad horizontally, kill horizontal drift
+      if (Math.abs(dxToPad) < 30) {
+        targetVx = Math.sign(dxToPad) * 0.4;
+      }
+      const vxDiff = targetVx - rocket.vx;
+
+      // Calculate desired rocket tilt angle (-PI/2 is straight up)
+      // Positive tilt leans right (+X), negative tilt leans left (-X)
+      let targetAngleOffset = vxDiff * 0.35;
+      targetAngleOffset = Math.max(-0.45, Math.min(0.45, targetAngleOffset)); // clamp to safe ~25 deg
+      let desiredAngle = -Math.PI / 2 + targetAngleOffset;
+
+      // Asteroid avoidance override
+      let asteroidThreat = null;
+      let minThreatDist = 120;
+      for (const ast of asteroids) {
+        const adx = ast.x - rocket.x;
+        const ady = ast.y - rocket.y;
+        const adist = Math.hypot(adx, ady);
+        // If asteroid is closing in and directly ahead along velocity vector
+        if (adist < minThreatDist && ady > -30) {
+          minThreatDist = adist;
+          asteroidThreat = { ast, adx, ady, adist };
+        }
+      }
+
+      if (asteroidThreat) {
+        // Steer away from threatening asteroid
+        desiredAngle += (asteroidThreat.adx > 0 ? -0.4 : 0.4);
+        if (aiCycleCounter % 15 === 0) {
+          aiThought.innerText = `🚨 LLM Evasive Maneuver: Asteroid detected at ${Math.round(asteroidThreat.adist)}m`;
+        }
+      }
+
+      // Rotate rocket towards desired angle
+      let currentAngle = rocket.angle;
+      let angleDiff = desiredAngle - currentAngle;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+      if (angleDiff > 0.08) {
+        keys.right = true;
+        keys.left = false;
+      } else if (angleDiff < -0.08) {
+        keys.left = true;
+        keys.right = false;
+      } else {
+        keys.left = false;
+        keys.right = false;
+      }
+
+      // Altitude & Descent Speed Management
+      // Safe descent profile: slows down as rocket approaches landing pad
+      let safeVy = 2.0;
+      if (dyToPad > 250) safeVy = 2.8;
+      else if (dyToPad > 120) safeVy = 1.8;
+      else if (dyToPad > 50) safeVy = 1.2;
+      else safeVy = 0.8;
+
+      let fireThrust = false;
+
+      // Trigger thrust if falling too fast, or if tilted upward and needing altitude
+      if (rocket.vy > safeVy) {
+        fireThrust = true;
+      } else if (dyToPad < 40 && Math.abs(dxToPad) > 60 && rocket.vy > 0) {
+        // Stay airborne longer to allow horizontal traversal towards pad
+        fireThrust = true;
+      }
+
+      // When directly above landing zone, force upright attitude
+      if (Math.abs(dxToPad) < landingPad.width * 0.4 && dyToPad < 100) {
+        desiredAngle = -Math.PI / 2;
+        if (rocket.vy > 1.2) fireThrust = true;
+      }
+
+      if (fireThrust && rocket.fuel > 0) {
+        keys.thrust = true;
+        sound.startThrust();
+      } else {
+        keys.thrust = false;
+        sound.stopThrust();
+      }
+
+      // Telemetry thought updates
+      if (aiCycleCounter % 20 === 0 && !asteroidThreat) {
+        if (dyToPad < 80 && Math.abs(dxToPad) < landingPad.width / 2) {
+          aiThought.innerText = `🎯 Final Descent: V=${rocket.vy.toFixed(1)} m/s, Pad Align=${Math.round(Math.abs(dxToPad))}px`;
+        } else if (Math.abs(dxToPad) > 100) {
+          aiThought.innerText = `🧭 Vectoring: Aligning trajectory towards Pad (${Math.round(dxToPad)}px)`;
+        } else {
+          aiThought.innerText = `🚀 Controlled Orbit: V-Descent=${rocket.vy.toFixed(1)} (Max safe=${safeVy.toFixed(1)})`;
+        }
+      }
+    }
+
+    function drawTrajectoryForecast(ctx) {
+      // Predict 40 ticks into the future under current physics
+      ctx.save();
+      ctx.beginPath();
+      let simX = rocket.x;
+      let simY = rocket.y;
+      let simVx = rocket.vx;
+      let simVy = rocket.vy;
+      ctx.moveTo(simX, simY);
+
+      for (let i = 0; i < 40; i++) {
+        simVy += 0.038; // gravity
+        simVx *= 0.998;
+        simVy *= 0.998;
+        simX += simVx;
+        simY += simVy;
+        ctx.lineTo(simX, simY);
+      }
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+
+      // Predicted impact point
+      ctx.beginPath();
+      ctx.arc(simX, simY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fill();
+      ctx.restore();
     }
 
     loop();
