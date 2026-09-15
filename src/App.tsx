@@ -19,7 +19,8 @@ import {
   Maximize2,
   Minimize2,
   Compass,
-  Sparkles
+  Sparkles,
+  Rocket
 } from 'lucide-react';
 
 const STAGES = [
@@ -380,6 +381,16 @@ export function App() {
           >
             {!isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
+
+          {/* Space Rocket Game Launcher */}
+          <a
+            href="./rocket.html"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/40 bg-gradient-to-r from-amber-950/70 to-slate-900 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-mono transition-all shadow-md shadow-amber-500/20"
+            title="Play Cosmic Lander: Space Rocket Game"
+          >
+            <Rocket className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Rocket Game</span>
+          </a>
 
           {/* Shinys Screensaver Mode Toggle */}
           <button
