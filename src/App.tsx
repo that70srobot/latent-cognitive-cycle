@@ -46,18 +46,33 @@ export function App() {
   const [recentTokens, setRecentTokens] = useState<string[]>([]);
   const [showInspector, setShowInspector] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
-  const [isScreensaver, setIsScreensaver] = useState(false);
+  const [isScreensaver, setIsScreensaver] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('screensaver') === 'true' || window.location.hash.toLowerCase().includes('screensaver');
+    }
+    return false;
+  });
   const [isNode1ModalOpen, setIsNode1ModalOpen] = useState(false);
 
-  // Global key listener: press 's' or 'S' to toggle screensaver
+  // Global key and hash listener: press 's' or 'S' or update hash to toggle screensaver
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.key === 's' || e.key === 'S') && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         setIsScreensaver((prev) => !prev);
       }
     };
+    const onHashChange = () => {
+      if (window.location.hash.toLowerCase().includes('screensaver')) {
+        setIsScreensaver(true);
+      }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('hashchange', onHashChange);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('hashchange', onHashChange);
+    };
   }, []);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
