@@ -1376,7 +1376,8 @@
         this.angle = -Math.PI / 2; // pointing upward
         this.rotationSpeed = 0.055;
         this.thrustPower = 0.13;
-        this.fuel = 100;
+        this.maxFuel = 250;
+        this.fuel = this.maxFuel;
         this.shield = 100;
         this.crashed = false;
         this.landed = false;
@@ -1392,60 +1393,67 @@
         this.leftStabilizer = false;
         this.rightStabilizer = false;
 
-        // Steering / Attitude control via side stabilizing thrusters
+        // Steering / Attitude control via side stabilizing thrusters (expelling DOWNWARD)
         if (keys.left) {
           this.angle -= this.rotationSpeed;
-          this.rightStabilizer = true; // Starboard stabilizer fires outward to yaw craft left
-          this.vx += Math.cos(this.angle + Math.PI / 2) * 0.02;
-          this.vy += Math.sin(this.angle + Math.PI / 2) * 0.02;
+          this.rightStabilizer = true; // Starboard thruster expels DOWNWARD -> lifts starboard side -> rolls craft left
+          this.vy -= 0.028; // Downward exhaust creates upward cushioning lift
+          this.vx -= 0.012;
           if (Math.random() < 0.25) sound.pulseRCS();
         }
         if (keys.right) {
           this.angle += this.rotationSpeed;
-          this.leftStabilizer = true; // Port stabilizer fires outward to yaw craft right
-          this.vx -= Math.cos(this.angle + Math.PI / 2) * 0.02;
-          this.vy -= Math.sin(this.angle + Math.PI / 2) * 0.02;
+          this.leftStabilizer = true; // Port thruster expels DOWNWARD -> lifts port side -> rolls craft right
+          this.vy -= 0.028; // Downward exhaust creates upward cushioning lift
+          this.vx += 0.012;
           if (Math.random() < 0.25) sound.pulseRCS();
         }
 
-        // Active Gyro Autostabilization (Side thrusters automatically damp angular spin & right the craft)
+        // Active Gyro Autostabilization (Side thrusters fire DOWNWARD to right the craft and cushion descent)
         if (!keys.left && !keys.right && this.autoStabilize) {
           let angleDiff = this.angle - (-Math.PI / 2);
           while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
           while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
           if (angleDiff < -0.06) {
-            // Tilting left -> Port stabilizer counter-fires to restore vertical stance
+            // Tilted left -> Port thruster expels DOWNWARD to lift port side
             this.angle += Math.min(0.022, -angleDiff * 0.18);
+            this.vy -= 0.018; // Upward cushioning
             this.leftStabilizer = true;
             if (Math.random() < 0.15) sound.pulseRCS();
           } else if (angleDiff > 0.06) {
-            // Tilting right -> Starboard stabilizer counter-fires to restore vertical stance
+            // Tilted right -> Starboard thruster expels DOWNWARD to lift starboard side
             this.angle -= Math.min(0.022, angleDiff * 0.18);
+            this.vy -= 0.018; // Upward cushioning
             this.rightStabilizer = true;
             if (Math.random() < 0.15) sound.pulseRCS();
           }
         }
 
-        // Side stabilizing thruster particle emissions (cyan plasma/cold-gas puffs)
+        // Side stabilizing thruster particle emissions (expelling DOWNWARD behind the craft)
+        const exhaustAngle = this.angle + Math.PI;
+        const aftOffset = 15;
+        const lateralOffset = 13;
         if (this.leftStabilizer) {
-          const pAngle = this.angle - Math.PI / 2;
+          const portX = this.x + Math.cos(this.angle - Math.PI / 2) * lateralOffset - Math.cos(this.angle) * aftOffset;
+          const portY = this.y + Math.sin(this.angle - Math.PI / 2) * lateralOffset - Math.sin(this.angle) * aftOffset;
           particles.push(new ExhaustParticle(
-            this.x + Math.cos(pAngle) * 11,
-            this.y + Math.sin(pAngle) * 11,
-            Math.cos(pAngle) * (Math.random() * 2.5 + 1.2),
-            Math.sin(pAngle) * (Math.random() * 2.5 + 1.2),
-            '#38bdf8'
+            portX,
+            portY,
+            Math.cos(exhaustAngle) * (Math.random() * 3.5 + 2) + (Math.random() - 0.5) * 0.8,
+            Math.sin(exhaustAngle) * (Math.random() * 3.5 + 2) + (Math.random() - 0.5) * 0.8,
+            '#00f2fe'
           ));
         }
         if (this.rightStabilizer) {
-          const sAngle = this.angle + Math.PI / 2;
+          const stbdX = this.x + Math.cos(this.angle + Math.PI / 2) * lateralOffset - Math.cos(this.angle) * aftOffset;
+          const stbdY = this.y + Math.sin(this.angle + Math.PI / 2) * lateralOffset - Math.sin(this.angle) * aftOffset;
           particles.push(new ExhaustParticle(
-            this.x + Math.cos(sAngle) * 11,
-            this.y + Math.sin(sAngle) * 11,
-            Math.cos(sAngle) * (Math.random() * 2.5 + 1.2),
-            Math.sin(sAngle) * (Math.random() * 2.5 + 1.2),
-            '#38bdf8'
+            stbdX,
+            stbdY,
+            Math.cos(exhaustAngle) * (Math.random() * 3.5 + 2) + (Math.random() - 0.5) * 0.8,
+            Math.sin(exhaustAngle) * (Math.random() * 3.5 + 2) + (Math.random() - 0.5) * 0.8,
+            '#00f2fe'
           ));
         }
 
@@ -1453,7 +1461,7 @@
         if (keys.thrust && this.fuel > 0) {
           this.vx += Math.cos(this.angle) * this.thrustPower;
           this.vy += Math.sin(this.angle) * this.thrustPower;
-          this.fuel = Math.max(0, this.fuel - 0.22);
+          this.fuel = Math.max(0, this.fuel - 0.09);
           if (this.fuel <= 0) sound.stopThrust();
 
           // Spawn fiery exhaust particles
@@ -1573,73 +1581,77 @@
           ctx.restore();
         }
 
-        // Two Side Stabilizing Thruster Pods (Port & Starboard)
-        // Port (Left) Stabilizer Housing & Nozzle
+        // Two Side Stabilizing Thruster Pods (Port & Starboard Outriggers, Firing DOWNWARD)
+        // Port (Left) Stabilizer Outrigger Pylon, Pod & Downward Nozzle
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-14, 4, 5, 8); // Outrigger pylon
         ctx.fillStyle = '#334155';
-        ctx.fillRect(-12, -2, 4, 8);
+        ctx.fillRect(-15.5, 8, 6, 8); // Thruster pod casing
         ctx.fillStyle = '#94a3b8';
         ctx.beginPath();
-        ctx.moveTo(-12, 0);
-        ctx.lineTo(-15, -2);
-        ctx.lineTo(-15, 6);
-        ctx.lineTo(-12, 4);
+        ctx.moveTo(-14.5, 16);
+        ctx.lineTo(-16.5, 19);
+        ctx.lineTo(-9.5, 19);
+        ctx.lineTo(-11.5, 16);
         ctx.closePath();
         ctx.fill();
 
-        // Starboard (Right) Stabilizer Housing & Nozzle
+        // Starboard (Right) Stabilizer Outrigger Pylon, Pod & Downward Nozzle
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(9, 4, 5, 8); // Outrigger pylon
         ctx.fillStyle = '#334155';
-        ctx.fillRect(8, -2, 4, 8);
+        ctx.fillRect(9.5, 8, 6, 8); // Thruster pod casing
         ctx.fillStyle = '#94a3b8';
         ctx.beginPath();
-        ctx.moveTo(12, 0);
-        ctx.lineTo(15, -2);
-        ctx.lineTo(15, 6);
-        ctx.lineTo(12, 4);
+        ctx.moveTo(11.5, 16);
+        ctx.lineTo(9.5, 19);
+        ctx.lineTo(16.5, 19);
+        ctx.lineTo(14.5, 16);
         ctx.closePath();
         ctx.fill();
 
-        // Port (Left) Stabilizer Active Plasma Jet
+        // Port (Left) Stabilizer Active Plasma Jet (Expelling DOWNWARD along +y)
         if (this.leftStabilizer) {
           ctx.save();
-          const rcsLen = 10 + Math.random() * 8;
+          const rcsLen = 14 + Math.random() * 10;
           ctx.beginPath();
-          ctx.moveTo(-15, 0);
-          ctx.lineTo(-15 - rcsLen, 2);
-          ctx.lineTo(-15, 4);
+          ctx.moveTo(-16, 19);
+          ctx.lineTo(-13, 19 + rcsLen);
+          ctx.lineTo(-10, 19);
           ctx.closePath();
           ctx.fillStyle = '#00f2fe';
           ctx.shadowColor = '#38bdf8';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 12;
           ctx.fill();
           // Core needle
           ctx.beginPath();
-          ctx.moveTo(-15, 1);
-          ctx.lineTo(-15 - rcsLen * 0.5, 2);
-          ctx.lineTo(-15, 3);
+          ctx.moveTo(-15, 19);
+          ctx.lineTo(-13, 19 + rcsLen * 0.55);
+          ctx.lineTo(-11, 19);
           ctx.closePath();
           ctx.fillStyle = '#ffffff';
           ctx.fill();
           ctx.restore();
         }
 
-        // Starboard (Right) Stabilizer Active Plasma Jet
+        // Starboard (Right) Stabilizer Active Plasma Jet (Expelling DOWNWARD along +y)
         if (this.rightStabilizer) {
           ctx.save();
-          const rcsLen = 10 + Math.random() * 8;
+          const rcsLen = 14 + Math.random() * 10;
           ctx.beginPath();
-          ctx.moveTo(15, 0);
-          ctx.lineTo(15 + rcsLen, 2);
-          ctx.lineTo(15, 4);
+          ctx.moveTo(10, 19);
+          ctx.lineTo(13, 19 + rcsLen);
+          ctx.lineTo(16, 19);
           ctx.closePath();
           ctx.fillStyle = '#00f2fe';
           ctx.shadowColor = '#38bdf8';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 12;
           ctx.fill();
           // Core needle
           ctx.beginPath();
-          ctx.moveTo(15, 1);
-          ctx.lineTo(15 + rcsLen * 0.5, 2);
-          ctx.lineTo(15, 3);
+          ctx.moveTo(11, 19);
+          ctx.lineTo(13, 19 + rcsLen * 0.55);
+          ctx.lineTo(15, 19);
           ctx.closePath();
           ctx.fillStyle = '#ffffff';
           ctx.fill();
@@ -1995,12 +2007,12 @@
         ));
       }
 
-      // Fuel orbs to sustain navigation
-      const numFuel = currentLevel <= 10 ? 3 : (currentLevel <= 40 ? 2 : 1);
+      // Fuel orbs to sustain navigation (abundant reserves)
+      const numFuel = currentLevel <= 10 ? 5 : (currentLevel <= 40 ? 4 : 3);
       for (let f = 0; f < numFuel; f++) {
         fuelOrbs.push(new FuelOrb(
-          ARENA_W * (0.3 + f * 0.2),
-          ARENA_H * (0.3 + ((f * 17) % 30) * 0.01)
+          ARENA_W * (0.22 + f * 0.16),
+          ARENA_H * (0.28 + ((f * 17) % 35) * 0.01)
         ));
       }
 
@@ -2015,11 +2027,11 @@
         const dy = rocket.y - orb.y;
         if (Math.sqrt(dx * dx + dy * dy) < rocket.radius + orb.radius) {
           fuelOrbs.splice(i, 1);
-          rocket.fuel = Math.min(100, rocket.fuel + 35);
+          rocket.fuel = Math.min(rocket.maxFuel || 250, rocket.fuel + 80);
           score += 250;
           scoreDisplay.innerText = score;
           sound.playChime();
-          observerSpeak("Fuel canister secured (+35% Fuel Reserve, +250 pts).", "info");
+          observerSpeak("Fuel canister secured (+80 Fuel Reserve, +250 pts).", "info");
         }
       }
 
@@ -2196,6 +2208,195 @@
       if (typeof updateStartButtonState === 'function') updateStartButtonState();
     };
 
+    // Tactical HUD Radar Scanner (360° Real-Time Sector Awareness)
+    function drawTacticalRadar(ctx, screenW, screenH) {
+      if (screenW < 220 || screenH < 220) return; // Hide on tiny screens
+      const radarR = 62;
+      const padMargin = 16;
+      const cx = screenW - radarR - padMargin;
+      const cy = radarR + padMargin;
+
+      ctx.save();
+
+      // 1. Radar Glass CRT Background & Bezel
+      ctx.beginPath();
+      ctx.arc(cx, cy, radarR, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(4, 11, 24, 0.88)';
+      ctx.fill();
+
+      // Outer bezel ring with subtle cyan glow
+      ctx.shadowColor = '#00f2fe';
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 2. Concentric Range Rings (250m, 500m, 750m)
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+      ctx.lineWidth = 1;
+      [0.33, 0.66, 1.0].forEach(frac => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, radarR * frac, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      // Reticle crosshairs
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.24)';
+      ctx.beginPath();
+      ctx.moveTo(cx - radarR, cy);
+      ctx.lineTo(cx + radarR, cy);
+      ctx.moveTo(cx, cy - radarR);
+      ctx.lineTo(cx, cy + radarR);
+      ctx.stroke();
+
+      // Cardinal compass ticks
+      ctx.font = '8px monospace';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
+      ctx.textAlign = 'center';
+      ctx.fillText('N', cx, cy - radarR + 9);
+      ctx.fillText('S', cx, cy + radarR - 3);
+      ctx.fillText('W', cx - radarR + 6, cy + 3);
+      ctx.fillText('E', cx + radarR - 6, cy + 3);
+
+      // 3. 360° Rotating Phosphor Sweep Beam
+      const sweepAngle = (Date.now() * 0.0025) % (Math.PI * 2);
+      const sweepArc = 0.55;
+      const gradient = ctx.createRadialGradient(cx, cy, 2, cx, cy, radarR);
+      gradient.addColorStop(0, 'rgba(0, 242, 254, 0.35)');
+      gradient.addColorStop(1, 'rgba(0, 242, 254, 0.02)');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radarR - 1, sweepAngle - sweepArc, sweepAngle, false);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Leading beam needle
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(sweepAngle) * radarR, cy + Math.sin(sweepAngle) * radarR);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. Mapped Radar Targets (Ship-Centered Tactical Scope)
+      const radarRangeWorld = 750;
+      const scale = (radarR - 6) / radarRangeWorld;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, radarR - 2, 0, Math.PI * 2);
+      ctx.clip();
+
+      // (A) Landing Pad Target
+      if (typeof landingPad !== 'undefined') {
+        const padCenterX = landingPad.x + landingPad.width / 2;
+        const padCenterY = landingPad.y;
+        const dx = padCenterX - rocket.x;
+        const dy = padCenterY - rocket.y;
+        const dist = Math.hypot(dx, dy);
+
+        let blipX = cx + dx * scale;
+        let blipY = cy + dy * scale;
+
+        const isOut = dist > radarRangeWorld;
+        if (isOut) {
+          const angle = Math.atan2(dy, dx);
+          blipX = cx + Math.cos(angle) * (radarR - 7);
+          blipY = cy + Math.sin(angle) * (radarR - 7);
+        }
+
+        // Emerald landing zone marker
+        ctx.fillStyle = '#4ade80';
+        ctx.shadowColor = '#4ade80';
+        ctx.shadowBlur = 6;
+        ctx.fillRect(blipX - 4, blipY - 1.5, 8, 3);
+
+        // Pulsing target beacon ring
+        const padPulse = (Date.now() * 0.005) % 1;
+        ctx.strokeStyle = `rgba(74, 222, 128, ${1 - padPulse})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(blipX, blipY, 3 + padPulse * 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // (B) Asteroids (Hostile Hazards - Crimson)
+      if (typeof asteroids !== 'undefined') {
+        asteroids.forEach(ast => {
+          const dx = ast.x - rocket.x;
+          const dy = ast.y - rocket.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist <= radarRangeWorld) {
+            const bx = cx + dx * scale;
+            const by = cy + dy * scale;
+            ctx.fillStyle = '#f87171';
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
+
+      // (C) Fuel Pods (Resource Canisters - Amber Gold)
+      if (typeof fuelOrbs !== 'undefined') {
+        fuelOrbs.forEach(orb => {
+          const dx = orb.x - rocket.x;
+          const dy = orb.y - rocket.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist <= radarRangeWorld) {
+            const bx = cx + dx * scale;
+            const by = cy + dy * scale;
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.arc(bx, by, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
+
+      // (D) Own Ship at Center (Cyan Heading Indicator)
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rocket.angle + Math.PI / 2);
+      ctx.fillStyle = '#00f2fe';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(4, 5);
+      ctx.lineTo(0, 3);
+      ctx.lineTo(-4, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.restore(); // end clip
+
+      // 5. Radar Overlay Headings & Range Labels
+      ctx.font = 'bold 8px monospace';
+      ctx.fillStyle = '#38bdf8';
+      ctx.textAlign = 'center';
+      ctx.fillText('📡 TACTICAL RADAR', cx, cy - radarR - 5);
+
+      ctx.font = '7px monospace';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+      ctx.fillText('RANGE: 750m', cx, cy + radarR + 11);
+
+      ctx.restore();
+    }
+
     let telemetryCounter = 0;
 
     // Main Game Loop
@@ -2349,8 +2550,11 @@
 
       ctx.restore(); // Camera transform pop
 
+      // Tactical HUD Radar Overlay (Rendered in CSS Screen Space)
+      drawTacticalRadar(ctx, width, height);
+
       // 3. Telemetry Overlay & DOM Updates
-      fuelBar.style.width = `${rocket.fuel}%`;
+      fuelBar.style.width = `${Math.min(100, Math.max(0, (rocket.fuel / (rocket.maxFuel || 250)) * 100))}%`;
       shieldBar.style.width = `${rocket.shield}%`;
 
       const vSpd = rocket.vy;
@@ -2720,7 +2924,7 @@
             y: ARENA_H * 0.20,
             vx: 0, vy: 0,
             angle: -Math.PI / 2,
-            fuel: 100
+            fuel: 250
           };
           const simPad = { x: pad.x, y: pad.y, width: pad.width };
 
@@ -2742,7 +2946,7 @@
             if (action.thrust && simR.fuel > 0) {
               simR.vx += Math.cos(simR.angle) * 0.13;
               simR.vy += Math.sin(simR.angle) * 0.13;
-              simR.fuel -= 0.22;
+              simR.fuel -= 0.09;
             }
             if (action.left) simR.angle -= 0.04;
             if (action.right) simR.angle += 0.04;
