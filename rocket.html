@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Cosmic Lander: Space Rocket Odyssey</title>
   <meta name="description" content="A web-based lunar lander simulation game that features an integrated Artificial Intelligence control dashboard, allowing different AI models and algorithms to pilot the ship.">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
     body, html {
@@ -186,11 +189,12 @@
 
   <!-- HUD -->
   <div id="hud">
-    <div class="hud-panel" style="pointer-events: auto;">
+    <div class="hud-panel" style="pointer-events: auto; min-width: 175px;">
       <!-- Mission Launch & Pause Controls -->
-      <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-        <button id="hudStartBtn" class="btn" style="flex: 1; padding: 6px 12px; font-size: 11px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; box-shadow: 0 0 12px rgba(16,185,129,0.4); text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; cursor: pointer;">▶ START MISSION</button>
-        <button id="hudResetBtn" style="background: rgba(30, 41, 59, 0.85); color: #cbd5e1; border: 1px solid #475569; border-radius: 8px; font-size: 12px; padding: 4px 9px; cursor: pointer;" title="Restart Current Sector">🔄</button>
+      <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+        <button id="hudStartBtn" style="flex: 1; padding: 6px 6px; font-size: 11px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(16,185,129,0.4); text-transform: uppercase;">▶ START</button>
+        <button id="hudPauseBtn" style="flex: 1; padding: 6px 6px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase;">⏸ PAUSE</button>
+        <button id="hudResetBtn" style="padding: 6px 8px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; border-radius: 6px; cursor: pointer;" title="Restart Current Sector">🔄</button>
       </div>
       <div class="bar-container">
         <span>FUEL:</span>
@@ -330,55 +334,69 @@
     const ollamaModelSelect = document.getElementById('ollamaModelSelect');
     const rotateModelBtn = document.getElementById('rotateModelBtn');
     const hudStartBtn = document.getElementById('hudStartBtn');
+    const hudPauseBtn = document.getElementById('hudPauseBtn');
     const hudResetBtn = document.getElementById('hudResetBtn');
 
     function updateStartButtonState() {
-      if (!hudStartBtn) return;
-      if (gameState === 'PLAYING') {
-        hudStartBtn.innerHTML = '⏸ PAUSE';
-        hudStartBtn.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
-        hudStartBtn.style.borderColor = '#38bdf8';
-        hudStartBtn.style.boxShadow = '0 0 10px rgba(56,189,248,0.3)';
-        hudStartBtn.style.color = '#fff';
-      } else if (gameState === 'PAUSED') {
-        hudStartBtn.innerHTML = '▶ RESUME';
-        hudStartBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-        hudStartBtn.style.borderColor = '#fbbf24';
-        hudStartBtn.style.boxShadow = '0 0 14px rgba(245,158,11,0.45)';
-        hudStartBtn.style.color = '#fff';
-      } else if (gameState === 'WON') {
-        hudStartBtn.innerHTML = '▶ NEXT SECTOR';
-        hudStartBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        hudStartBtn.style.borderColor = '#34d399';
-        hudStartBtn.style.boxShadow = '0 0 14px rgba(16,185,129,0.45)';
-        hudStartBtn.style.color = '#fff';
-      } else if (gameState === 'GAMEOVER') {
-        hudStartBtn.innerHTML = '🔄 RETRY';
-        hudStartBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        hudStartBtn.style.borderColor = '#f87171';
-        hudStartBtn.style.boxShadow = '0 0 14px rgba(239,68,68,0.45)';
-        hudStartBtn.style.color = '#fff';
-      } else {
-        // MENU
-        hudStartBtn.innerHTML = '▶ START MISSION';
-        hudStartBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        hudStartBtn.style.borderColor = '#34d399';
-        hudStartBtn.style.boxShadow = '0 0 14px rgba(16,185,129,0.45)';
-        hudStartBtn.style.color = '#fff';
+      if (hudPauseBtn) {
+        if (gameState === 'PAUSED') {
+          hudPauseBtn.innerHTML = '▶ RESUME';
+          hudPauseBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+          hudPauseBtn.style.borderColor = '#fbbf24';
+          hudPauseBtn.style.color = '#fff';
+          hudPauseBtn.style.boxShadow = '0 0 10px rgba(245,158,11,0.45)';
+        } else {
+          hudPauseBtn.innerHTML = '⏸ PAUSE';
+          hudPauseBtn.style.background = 'rgba(30, 41, 59, 0.9)';
+          hudPauseBtn.style.borderColor = '#0284c7';
+          hudPauseBtn.style.color = '#38bdf8';
+          hudPauseBtn.style.boxShadow = 'none';
+        }
+      }
+      if (hudStartBtn) {
+        if (gameState === 'PLAYING') {
+          hudStartBtn.innerHTML = '▶ FLYING';
+          hudStartBtn.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+          hudStartBtn.style.borderColor = '#38bdf8';
+        } else if (gameState === 'GAMEOVER') {
+          hudStartBtn.innerHTML = '🔄 RETRY';
+          hudStartBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+          hudStartBtn.style.borderColor = '#f87171';
+        } else if (gameState === 'WON') {
+          hudStartBtn.innerHTML = '▶ NEXT';
+          hudStartBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          hudStartBtn.style.borderColor = '#34d399';
+        } else {
+          hudStartBtn.innerHTML = '▶ START';
+          hudStartBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          hudStartBtn.style.borderColor = '#34d399';
+        }
       }
     }
 
     if (hudStartBtn) {
       hudStartBtn.addEventListener('click', () => {
         sound.init();
+        if (modal) modal.style.display = 'none';
+        if (gameState === 'MENU' || gameState === 'GAMEOVER' || gameState === 'WON') {
+          if (modalBtn) modalBtn.click();
+        } else {
+          initLevel(currentLevel);
+          gameState = 'PLAYING';
+        }
+        updateStartButtonState();
+      });
+    }
+
+    if (hudPauseBtn) {
+      hudPauseBtn.addEventListener('click', () => {
+        sound.init();
         if (gameState === 'PLAYING') {
           gameState = 'PAUSED';
-          if (aiThought) aiThought.innerText = "⏸ Mission Paused. Click Resume to continue.";
+          if (aiThought) aiThought.innerText = "⏸ Mission Paused. Click Resume to continue flight.";
         } else if (gameState === 'PAUSED') {
           gameState = 'PLAYING';
           if (aiThought) aiThought.innerText = "▶ Mission Resumed.";
-        } else if (gameState === 'MENU' || gameState === 'GAMEOVER' || gameState === 'WON') {
-          if (modalBtn) modalBtn.click();
         }
         updateStartButtonState();
       });
