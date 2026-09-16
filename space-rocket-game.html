@@ -1279,6 +1279,33 @@
       }
     }
 
+    // Banked Score & Lifetime High Score System (100% Crash-Proof Career Progress)
+    let bankedScore = 0;
+    let currentSectorScore = 0;
+    let score = 0;
+    let highScore = 0;
+
+    try {
+      const savedBanked = localStorage.getItem('cosmic_banked_score');
+      if (savedBanked !== null) bankedScore = parseInt(savedBanked, 10) || 0;
+      const savedHigh = localStorage.getItem('cosmic_high_score');
+      if (savedHigh !== null) highScore = parseInt(savedHigh, 10) || 0;
+    } catch(e) {}
+
+    score = bankedScore;
+
+    function updateScoreDisplay() {
+      score = bankedScore + currentSectorScore;
+      if (score > highScore) {
+        highScore = score;
+        try { localStorage.setItem('cosmic_high_score', highScore); } catch(e) {}
+      }
+      if (scoreDisplay) {
+        scoreDisplay.innerText = score;
+        scoreDisplay.title = `Total: ${score} pts | Banked Career: ${bankedScore} pts | Sector: +${currentSectorScore} pts | High Score: ${highScore} pts`;
+      }
+    }
+
     // Dynamic Multi-Model Roster with Hermes 3 leading candidate
     const OLLAMA_MODELS = ['hermes3:8b', 'llama3.1:8b', 'gemma2:9b', 'gemma2:27b', 'command-r:35b'];
     let currentModelIndex = 0;
@@ -3181,7 +3208,6 @@
     let currentLevel = 1;
     const MAX_LEVELS = 100;
     let currentGravity = 0.015;
-    let score = 0;
     let gameState = 'MENU'; // 'MENU', 'PLAYING', 'WON', 'GAMEOVER'
     let missionTimeLimit = 50.0;
     let missionTimeRemaining = 50.0;
@@ -3289,6 +3315,8 @@
 
       if (typeof updateStartButtonState === 'function') updateStartButtonState();
       if (typeof lunarStationSystem !== 'undefined') lunarStationSystem.updateHUD();
+      currentSectorScore = 0;
+      updateScoreDisplay();
     }
 
     function checkCollisions() {
@@ -3300,8 +3328,8 @@
         if (Math.sqrt(dx * dx + dy * dy) < rocket.radius + orb.radius) {
           fuelOrbs.splice(i, 1);
           rocket.fuel = Math.min(rocket.maxFuel || 250, rocket.fuel + 80);
-          score += 250;
-          scoreDisplay.innerText = score;
+          currentSectorScore += 250;
+          updateScoreDisplay();
           sound.playChime();
           observerSpeak("Fuel canister secured (+80 Fuel Reserve, +250 pts).", "info");
         }
@@ -3313,11 +3341,10 @@
         if (core.checkCollision(rocket)) {
           quantumCores.splice(i, 1);
           quantumCoresHarvested++;
-          score += 500;
-          aiTokens += 50;
+          currentSectorScore += 500;
+          updateTokenDisplay(+50);
           rocket.shield = Math.min(100, rocket.shield + 25);
-          if (scoreDisplay) scoreDisplay.innerText = score;
-          if (tokenDisplay) tokenDisplay.innerText = aiTokens;
+          updateScoreDisplay();
           if (shieldBar) shieldBar.style.width = `${rocket.shield}%`;
           if (quantumCoresDisplay) quantumCoresDisplay.innerText = `${quantumCoresHarvested}/${totalQuantumCoresInLevel}`;
           sound.playWin();
@@ -3376,9 +3403,12 @@
 
       const fuelBonus = Math.floor(rocket.fuel * 10);
       const speedrunBonus = missionTimeRemaining > 0 ? Math.floor(missionTimeRemaining * 20) : 0;
-      const totalBonus = 1000 + fuelBonus + speedrunBonus;
-      score += totalBonus;
-      scoreDisplay.innerText = score;
+      const landingBonus = 1000 + fuelBonus + speedrunBonus;
+      currentSectorScore += landingBonus;
+      bankedScore += currentSectorScore;
+      try { localStorage.setItem('cosmic_banked_score', bankedScore); } catch(e) {}
+      currentSectorScore = 0;
+      updateScoreDisplay();
 
       // Token Award on Touchdown: +50 Tokens
       updateTokenDisplay(+50);
@@ -3404,7 +3434,7 @@
       if (currentLevel < MAX_LEVELS) {
         modalTitle.innerText = 'TOUCHDOWN CONFIRMED!';
         modalTitle.style.color = '#4ade80';
-        modalDesc.innerHTML = `Safe landing in Sector ${currentLevel}!${timeBonusHtml}${stationHtml}<br>Council rewarded: <strong style="color:#fbbf24;">+50 Tokens</strong> (Balance: ${aiTokens})<br>Ready for Sector ${currentLevel + 1}?`;
+        modalDesc.innerHTML = `Safe landing in Sector ${currentLevel}!${timeBonusHtml}${stationHtml}<br>Banked Total: <strong style="color:#fbbf24;">${bankedScore} pts</strong> (Protected)<br>Council rewarded: <strong style="color:#fbbf24;">+50 Tokens</strong> (Balance: ${aiTokens})<br>Ready for Sector ${currentLevel + 1}?`;
         modalBtn.innerText = `PROCEED TO SECTOR ${currentLevel + 1}`;
         modalBtn.onclick = () => {
           modal.style.display = 'none';
@@ -3415,10 +3445,9 @@
       } else {
         modalTitle.innerText = '100 SECTORS CONQUERED!';
         modalTitle.style.color = '#4ade80';
-        modalDesc.innerHTML = `The Council has completed all 100 orbital sectors!${timeBonusHtml}${stationHtml}<br>Final Token Treasury: <strong style="color:#fbbf24;">${aiTokens}</strong> Tokens.<br>Cosmic Mastery Confirmed!`;
+        modalDesc.innerHTML = `The Council has completed all 100 orbital sectors!${timeBonusHtml}${stationHtml}<br>Final Banked Treasury: <strong style="color:#fbbf24;">${bankedScore}</strong> pts (Tokens: ${aiTokens})<br>Cosmic Mastery Confirmed!`;
         modalBtn.innerText = 'BEGIN NEW CYCLE';
         modalBtn.onclick = () => {
-          score = 0;
           modal.style.display = 'none';
           initLevel(1);
           gameState = 'PLAYING';
@@ -3470,8 +3499,13 @@
       sound.stopThrust();
       sound.playExplosion();
 
-      // Token Penalty on Crash: -35 Tokens
-      updateTokenDisplay(-35);
+      // Crash Point Protection: Banked career score is 100% immune from crashes!
+      currentSectorScore = 0;
+      updateScoreDisplay();
+
+      // Minor salvage deductible: -10 Tokens (with a floor of 100)
+      const tokenPenalty = Math.min(10, Math.max(0, aiTokens - 100));
+      if (tokenPenalty > 0) updateTokenDisplay(-tokenPenalty);
 
       // Explosion particles
       for (let i = 0; i < 40; i++) {
@@ -3485,9 +3519,15 @@
         ));
       }
 
-      modalTitle.innerText = 'HULL DESTROYED';
+      modalTitle.innerText = 'HULL BREACHED';
       modalTitle.style.color = '#f87171';
-      modalDesc.innerHTML = `${reason}<br>Penalty incurred: <strong style="color:#f87171;">-35 Tokens</strong> (Treasury: ${aiTokens})<br>Telemetry logged to Vector DB.`;
+      modalDesc.innerHTML = `${reason}<br>
+      <div style="margin: 8px 0; padding: 7px 10px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; text-align: left; font-size: 11px;">
+        🛡️ <strong style="color:#38bdf8;">CAREER SCORE PROTECTED:</strong> <span style="color:#fbbf24; font-weight:bold;">${bankedScore} pts</span> secured.<br>
+        <span style="color:#94a3b8; font-size: 10px;">(Crashing never wipes out previously banked sector points)</span><br>
+        Emergency salvage deductible: <strong style="color:#f87171;">-${tokenPenalty} Tokens</strong> (Treasury: ${aiTokens})
+      </div>
+      Telemetry logged to Vector DB.`;
       modalBtn.innerText = 'RETRY MISSION';
       modalBtn.onclick = () => {
         modal.style.display = 'none';
@@ -3508,7 +3548,7 @@
         vectorDB.insertMemory(emb, 'CRASH', { thrust: keys.thrust, left: keys.left, right: keys.right }, reason);
       }
 
-      observerSpeak(`Hull breach: ${reason} -35 Tokens penalized (Treasury: ${aiTokens}). Crash logged to model vector memory.`, 'error');
+      observerSpeak(`Hull breach: ${reason}. 🛡️ Score Protected: ${bankedScore} banked points safe in treasury (-${tokenPenalty} Tokens salvage).`, 'error');
 
       // Rotate model choice to evaluate alternative LLM reasoning on retry
       rotateOllamaModel();
@@ -3971,13 +4011,15 @@
               overtimePenaltyCounter++;
               // Every 60 frames (1s), deduct 25 score & 1% shield
               if (overtimePenaltyCounter % 60 === 0) {
-                score = Math.max(0, score - 25);
-                if (scoreDisplay) scoreDisplay.innerText = score;
+                if (currentSectorScore > 0) {
+                  currentSectorScore = Math.max(0, currentSectorScore - 25);
+                  updateScoreDisplay();
+                }
                 rocket.shield = Math.max(0, rocket.shield - 1.0);
                 if (shieldBar) shieldBar.style.width = `${rocket.shield}%`;
 
                 if (overtimePenaltyCounter % 180 === 0) {
-                  observerSpeak(`⚠️ OVERTIME PENALTY: Orbital thermal decay draining score (-25) and hull (-1%)! Touch down immediately!`, 'error');
+                  observerSpeak(`⚠️ OVERTIME: Orbital thermal decay draining unbanked bonus and hull (-1%)! Touch down immediately!`, 'error');
                   sound.playWarningBeep();
                 }
 
