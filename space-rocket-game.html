@@ -9,7 +9,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html {
       width: 100%;
       height: 100%;
@@ -19,83 +19,155 @@
       color: #e2e8f0;
       user-select: none;
     }
-    #gameCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      z-index: 1;
-    }
-    /* Tactical Action Screen Viewport HUD Frame */
-    #actionScreenFrame {
-      position: absolute;
-      inset: 8px;
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 12px;
-      pointer-events: none;
-      z-index: 4;
-      box-shadow: inset 0 0 35px rgba(56, 189, 248, 0.05);
-    }
-    #actionScreenFrame::before {
-      content: "🔴 LIVE TACTICAL FLIGHT VIEWPORT // CAM-1 ACTIVE";
-      position: absolute;
-      top: -10px;
-      left: 20px;
-      background: #030611;
-      padding: 1px 10px;
-      font-size: 10px;
-      font-weight: bold;
-      letter-spacing: 0.12em;
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      border-radius: 4px;
-    }
-    #actionScreenFrame::after {
-      content: "TARGET: PRIMARY LANDING PAD // SURFACE RADAR LOCK";
-      position: absolute;
-      bottom: -10px;
-      right: 20px;
-      background: #030611;
-      padding: 1px 10px;
-      font-size: 10px;
-      font-weight: bold;
-      letter-spacing: 0.12em;
-      color: #4ade80;
-      border: 1px solid rgba(74, 222, 128, 0.4);
-      border-radius: 4px;
-    }
-    /* Heads Up Display */
-    #hud {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
+
+    #appLayout {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      padding: 10px;
       gap: 12px;
-      pointer-events: none;
-      z-index: 10;
+      background: #030611;
     }
-    .hud-panel {
-      background: rgba(10, 16, 32, 0.85);
+
+    /* LEFT SIDEBAR: ALL DATA BOXES */
+    #leftSidebar {
+      width: 380px;
+      min-width: 330px;
+      max-width: 410px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex-shrink: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(56, 189, 248, 0.3) rgba(10, 16, 32, 0.8);
+    }
+    #leftSidebar::-webkit-scrollbar {
+      width: 5px;
+    }
+    #leftSidebar::-webkit-scrollbar-track {
+      background: rgba(10, 16, 32, 0.8);
+    }
+    #leftSidebar::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 3px;
+    }
+
+    .data-box {
+      background: rgba(10, 16, 32, 0.88);
       border: 1px solid rgba(56, 189, 248, 0.35);
-      padding: 10px 14px;
       border-radius: 12px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
+      padding: 12px 14px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(56, 189, 248, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
+
+    .data-box-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      padding-bottom: 6px;
+    }
+
+    .box-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #38bdf8;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .box-badge {
+      font-size: 9px;
+      font-weight: bold;
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .box-badge.safe {
+      background: rgba(74, 222, 128, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+    .box-badge.highlight {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .box-badge.warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .box-badge.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Action buttons in sidebar */
+    .control-row {
+      display: flex;
+      gap: 6px;
+    }
+    .action-btn {
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+      letter-spacing: 0.05em;
+    }
+    .start-btn {
+      flex: 1.2;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      border: 1px solid #34d399;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    }
+    .start-btn:hover {
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.7);
+      transform: translateY(-1px);
+    }
+    .pause-btn {
+      flex: 1;
+      background: rgba(30, 41, 59, 0.9);
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+    }
+    .reset-btn {
+      background: rgba(30, 41, 59, 0.9);
+      color: #cbd5e1;
+      border: 1px solid #475569;
+    }
+
+    /* Bars */
     .bar-container {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 11px;
-      margin-bottom: 4px;
+    }
+    .bar-label {
+      width: 44px;
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: bold;
     }
     .bar-outer {
-      width: 110px;
+      flex: 1;
       height: 8px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 4px;
@@ -113,12 +185,336 @@
       width: 100%;
       transition: width 0.1s linear;
     }
-    .hud-metric {
-      font-size: 12px;
+
+    /* Telemetry grid */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .telemetry-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .t-label {
+      font-size: 8px;
+      color: #94a3b8;
       letter-spacing: 0.05em;
+    }
+    .t-val {
+      font-size: 11px;
+      font-weight: bold;
+      color: #e2e8f0;
+      margin-top: 1px;
     }
     .safe { color: #4ade80; }
     .danger { color: #f87171; }
+    .warning { color: #f59e0b; }
+    .highlight { color: #38bdf8; }
+    .gold { color: #fbbf24; }
+    .purple { color: #c084fc; }
+
+    /* AI Tribunal Box */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #334155;
+      border-radius: 20px;
+      transition: .3s;
+      border: 1px solid #64748b;
+    }
+    .toggle-slider::before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: .3s;
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(16px);
+      background-color: #38bdf8;
+    }
+    .cyber-select {
+      width: 100%;
+      background: #0f172a;
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+      border-radius: 6px;
+      font-size: 11px;
+      padding: 4px 6px;
+      outline: none;
+      font-family: inherit;
+    }
+    .model-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(30, 41, 59, 0.4);
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .model-select {
+      flex: 1;
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+    .small-btn {
+      background: rgba(2, 132, 199, 0.25);
+      border: 1px solid #0284c7;
+      color: #38bdf8;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: bold;
+      padding: 3px 8px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+    }
+    .small-btn:hover {
+      background: rgba(2, 132, 199, 0.5);
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #94a3b8;
+      border-top: 1px solid rgba(56, 189, 248, 0.2);
+      padding-top: 4px;
+    }
+    .votes-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      font-size: 9px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.15);
+    }
+    .watchdog-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9px;
+      padding: 3px 6px;
+      background: rgba(2, 132, 199, 0.12);
+      border-radius: 4px;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+    .ai-thought-box {
+      font-size: 10px;
+      color: #a5f3fc;
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(3, 6, 17, 0.5);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px dashed rgba(56, 189, 248, 0.2);
+    }
+
+    /* Observer Terminal */
+    .pulse-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    .comms-badge {
+      font-size: 8px;
+      color: #c084fc;
+      background: rgba(192, 132, 252, 0.15);
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(192, 132, 252, 0.35);
+      letter-spacing: 0.05em;
+    }
+    .observer-log-container {
+      flex: 1;
+      min-height: 120px;
+      max-height: 250px;
+      overflow-y: auto;
+      background: rgba(3, 6, 17, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      line-height: 1.45;
+      color: #e0f2fe;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    /* RIGHT: ACTION SCREEN (SEPARATE BOX) */
+    #actionScreenBox {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #actionScreenHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 16, 32, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 8px;
+      padding: 6px 12px;
+      backdrop-filter: blur(10px);
+    }
+    .action-title {
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .recording-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+      display: inline-block;
+      animation: blink 1s infinite alternate;
+    }
+    @keyframes blink {
+      from { opacity: 1; }
+      to { opacity: 0.3; }
+    }
+
+    .zoom-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .zoom-label {
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: bold;
+    }
+    .zoom-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: bold;
+      width: 26px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .zoom-btn:hover {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: #38bdf8;
+    }
+    .zoom-value {
+      font-size: 11px;
+      color: #34d399;
+      font-weight: bold;
+      min-width: 36px;
+      text-align: center;
+    }
+    .fit-btn {
+      width: auto;
+      padding: 0 8px;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    #canvasContainer {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.1), inset 0 0 30px rgba(0, 0, 0, 0.9);
+      background: #02040a;
+    }
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #actionScreenFooter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 16, 32, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+    }
+    .footer-left {
+      color: #4ade80;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .radar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      display: inline-block;
+    }
+    .footer-right {
+      color: #94a3b8;
+    }
+    .footer-right span {
+      color: #38bdf8;
+      font-weight: bold;
+    }
 
     /* Modals & Overlays (Non-blocking floating dialog) */
     #modal {
@@ -176,17 +572,11 @@
       transform: scale(1.04);
       box-shadow: 0 6px 25px rgba(56, 189, 248, 0.5);
     }
-    .btn-secondary {
-      background: rgba(30, 41, 59, 0.8);
-      color: #cbd5e1;
-      border: 1px solid #334155;
-      margin-left: 8px;
-    }
 
     /* Mobile On-Screen Controls */
     #mobileControls {
       position: absolute;
-      bottom: 24px;
+      bottom: 20px;
       left: 20px;
       right: 20px;
       display: none;
@@ -195,8 +585,8 @@
       z-index: 20;
     }
     .touch-btn {
-      width: 66px;
-      height: 66px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background: rgba(15, 23, 42, 0.7);
       border: 2px solid rgba(56, 189, 248, 0.4);
@@ -213,8 +603,8 @@
       transform: scale(0.92);
     }
     .touch-thrust {
-      width: 78px;
-      height: 78px;
+      width: 72px;
+      height: 72px;
       background: rgba(245, 158, 11, 0.25);
       border-color: #f59e0b;
       color: #f59e0b;
@@ -222,140 +612,193 @@
     .touch-thrust:active {
       background: rgba(245, 158, 11, 0.6);
     }
-    @media (max-width: 820px) {
+
+    /* Responsive for mobile screens */
+    @media (max-width: 900px) {
+      #appLayout {
+        flex-direction: column-reverse;
+      }
+      #leftSidebar {
+        width: 100%;
+        max-width: 100%;
+        height: 42%;
+      }
+      #actionScreenBox {
+        height: 58%;
+      }
       #mobileControls { display: flex; }
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="actionScreenFrame"></div>
+  <div id="appLayout">
+    <!-- LEFT SIDEBAR: ALL DATA BOXES -->
+    <aside id="leftSidebar">
+      <!-- BOX 1: MISSION CONTROL & FLIGHT TELEMETRY -->
+      <div class="data-box" id="boxMissionControl">
+        <div class="data-box-header">
+          <span class="box-title">🚀 MISSION CONTROL & TELEMETRY</span>
+          <span class="box-badge safe" id="missionStatusBadge">STANDBY</span>
+        </div>
+        <!-- Controls -->
+        <div class="control-row">
+          <button id="hudStartBtn" class="action-btn start-btn">▶ START</button>
+          <button id="hudPauseBtn" class="action-btn pause-btn">⏸ PAUSE</button>
+          <button id="hudResetBtn" class="action-btn reset-btn" title="Restart Current Sector">🔄</button>
+        </div>
+        <!-- Fuel & Hull Progress Bars -->
+        <div class="bar-container">
+          <span class="bar-label">FUEL:</span>
+          <div class="bar-outer"><div id="fuelBar" class="bar-fuel"></div></div>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label">HULL:</span>
+          <div class="bar-outer"><div id="shieldBar" class="bar-shield"></div></div>
+        </div>
+        <!-- Telemetry Grid -->
+        <div class="telemetry-grid">
+          <div class="telemetry-item"><span class="t-label">SECTOR</span><span class="t-val highlight" id="levelDisplay">LVL 1 / 100</span></div>
+          <div class="telemetry-item"><span class="t-label">GRAVITY</span><span class="t-val warning" id="gravityDisplay">0.015 g</span></div>
+          <div class="telemetry-item"><span class="t-label">TOKENS</span><span class="t-val gold" id="tokenDisplay">2000</span></div>
+          <div class="telemetry-item"><span class="t-label">SCORE</span><span class="t-val purple" id="scoreDisplay">0</span></div>
+          <div class="telemetry-item"><span class="t-label">V-SPEED</span><span class="t-val safe" id="vSpeedDisplay">0.0 m/s</span></div>
+          <div class="telemetry-item"><span class="t-label">H-SPEED</span><span class="t-val safe" id="hSpeedDisplay">0.0 m/s</span></div>
+          <div class="telemetry-item"><span class="t-label">TILT</span><span class="t-val safe" id="tiltDisplay">0°</span></div>
+          <div class="telemetry-item"><span class="t-label">DIST PAD</span><span class="t-val safe" id="sidebarPadDist">--</span></div>
+        </div>
+      </div>
 
-  <!-- HUD -->
-  <div id="hud">
-    <div class="hud-panel" style="pointer-events: auto; min-width: 260px; max-width: 320px;">
-      <!-- Mission Launch & Pause Controls -->
-      <div style="display: flex; gap: 4px; margin-bottom: 8px;">
-        <button id="hudStartBtn" style="flex: 1; padding: 7px 6px; font-size: 11px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(16,185,129,0.5); text-transform: uppercase;">▶ START</button>
-        <button id="hudPauseBtn" style="flex: 1; padding: 7px 6px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase;">⏸ PAUSE</button>
-        <button id="hudResetBtn" style="padding: 7px 10px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; border-radius: 6px; cursor: pointer;" title="Restart Current Sector">🔄</button>
-      </div>
-      <div class="bar-container">
-        <span>FUEL:</span>
-        <div class="bar-outer"><div id="fuelBar" class="bar-fuel"></div></div>
-      </div>
-      <div class="bar-container">
-        <span>HULL:</span>
-        <div class="bar-outer"><div id="shieldBar" class="bar-shield"></div></div>
-      </div>
-      <div style="display: flex; justify-content: space-between; margin-top: 6px;">
-        <div class="hud-metric">SECTOR: <span id="levelDisplay" style="color: #38bdf8; font-weight: bold;">LVL 1 / 100</span></div>
-        <div class="hud-metric" style="font-size: 10px; color: #94a3b8;">GRAVITY: <span id="gravityDisplay" style="color: #f59e0b;">0.015 g</span></div>
+      <!-- BOX 2: AI TRIBUNAL & MODEL COCKPIT -->
+      <div class="data-box" id="boxAiTribunal">
+        <div class="data-box-header">
+          <span class="box-title">⚖️ AI TRIBUNAL COCKPIT</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="aiToggle">
+            <span id="aiSlider" class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div style="margin-bottom: 2px;">
+          <select id="aiModeSelect" class="cyber-select">
+            <option value="tribunal" selected>🏛️ AI Tribunal (RL + LLM + PID + VDB)</option>
+            <option value="rl">🧠 Self-Learning (Q-Learning RL)</option>
+            <option value="ollama">🦙 Ollama Local LLM</option>
+            <option value="heuristic">🚀 Algorithmic Guidance</option>
+          </select>
+        </div>
+
+        <div class="model-row">
+          <span class="t-label" style="font-size: 9px;">MODEL:</span>
+          <select id="ollamaModelSelect" class="cyber-select model-select">
+            <option value="hermes3:8b" selected>🪽 Hermes 3 (8B)</option>
+            <option value="llama3.1:8b">🦙 Llama 3.1 (8B)</option>
+            <option value="gemma2:9b">💎 Gemma 2 (9B)</option>
+            <option value="gemma2:27b">💎 Gemma 2 (27B)</option>
+            <option value="command-r:35b">⚡ Command R (35B)</option>
+          </select>
+          <button id="rotateModelBtn" class="small-btn">ROTATE</button>
+        </div>
+
+        <!-- Stats -->
+        <div id="aiLearningStats" class="stats-row">
+          <span>EP: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
+          <span>WIN: <strong id="aiSuccessRateDisplay" style="color: #4ade80;">0%</strong></span>
+          <span title="Shared Master Vector DB (Curated by Observing Bot)">CURATED: <strong id="curatedVectorsDisplay" style="color: #c084fc;">0</strong></span>
+          <span title="Private Model Vector DB (Exclusive to Active Architecture)">PVT: <strong id="privateVectorsDisplay" style="color: #38bdf8;">0</strong></span>
+          <span>CONS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
+        </div>
+
+        <!-- Live Council Votes -->
+        <div id="tribunalVotes" class="votes-row">
+          <span id="voteRL" style="color: #94a3b8;">🧠 RL: --</span>
+          <span id="voteLLM" style="color: #94a3b8;">🦙 LLM: --</span>
+          <span id="votePID" style="color: #94a3b8;">🚀 PID: --</span>
+          <span id="voteVDB" style="color: #c084fc;">🌌 RAG: --</span>
+        </div>
+
+        <!-- Watchdog & Supervisor Status -->
+        <div class="watchdog-row">
+          <span>🛰️ WATCHDOG: <strong id="watchdogStatus" class="safe">ACTIVE</strong></span>
+          <span>SUPERVISOR: <strong id="supervisorAction" class="highlight">HEALTHY</strong></span>
+        </div>
+
+        <!-- Live AI Thought -->
+        <div id="aiThought" class="ai-thought-box">
+          Autonomous Tribunal Online. Self-monitoring telemetry active.
+        </div>
       </div>
 
-      <!-- Observer Bot Live Comms & Thought Terminal -->
-      <div id="observerTerminal" style="margin-top: 8px; border-top: 1px solid rgba(56, 189, 248, 0.25); padding-top: 6px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <span style="font-size: 10px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 5px;">
-            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80;"></span>
+      <!-- BOX 3: OBSERVER BOT COMMS TERMINAL -->
+      <div class="data-box" id="boxObserverComms" style="flex: 1; display: flex; flex-direction: column; min-height: 180px;">
+        <div class="data-box-header">
+          <span class="box-title">
+            <span class="pulse-dot"></span>
             OBSERVER BOT COMMS
           </span>
-          <span id="observerBadge" style="font-size: 8px; color: #c084fc; background: rgba(192, 132, 252, 0.15); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(192, 132, 252, 0.3);">TRANSMITTING</span>
+          <span id="observerBadge" class="comms-badge">TRANSMITTING</span>
         </div>
-        <div id="observerLog" style="font-size: 10px; line-height: 1.4; color: #e0f2fe; max-height: 100px; overflow-y: auto; background: rgba(3, 6, 17, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 6px; font-family: monospace; white-space: normal; word-break: break-word;">
-          <div style="color: #a5f3fc;"><strong style="color: #4ade80;">[OBSERVER]:</strong> Start button is located right above! Click <strong>[▶ START]</strong> to launch flight. AI Tribunal active with 2000 tokens on Hermes 3.</div>
+        <div id="observerLog" class="observer-log-container">
+          <div style="color: #a5f3fc;"><strong style="color: #4ade80;">[OBSERVER]:</strong> Ready. Click <strong>[▶ START]</strong> in the top box to launch flight! AI Tribunal loaded with Hermes 3. Zoom controls available above action screen.</div>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 320px; pointer-events: auto;">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
-        <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">⚖️ AI TRIBUNAL</span>
-        <select id="aiModeSelect" style="background: #0f172a; color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-size: 11px; padding: 2px 6px; outline: none;">
-          <option value="tribunal" selected>🏛️ AI Tribunal (Combines RL, LLM, PID, and Vector DB)</option>
-          <option value="rl">🧠 Self-Learning (Q-Learning RL)</option>
-          <option value="ollama">🦙 Ollama Local LLM</option>
-          <option value="heuristic">🚀 Algorithmic Guidance</option>
-        </select>
-        <label style="position: relative; display: inline-block; width: 34px; height: 18px; cursor: pointer;">
-          <input type="checkbox" id="aiToggle" style="opacity: 0; width: 0; height: 0;">
-          <span id="aiSlider" style="position: absolute; cursor: pointer; inset: 0; background-color: #334155; border-radius: 20px; transition: .3s; border: 1px solid #64748b;"></span>
-        </label>
+    <!-- RIGHT: ACTION SCREEN (SEPARATE BOX) -->
+    <main id="actionScreenBox">
+      <!-- Action Screen Header with Title & Zoom Toolbar -->
+      <div id="actionScreenHeader">
+        <div class="action-title">
+          <span class="recording-indicator"></span>
+          LIVE TACTICAL FLIGHT VIEWPORT // CAM-1 ACTIVE
+        </div>
+        <div class="zoom-toolbar">
+          <span class="zoom-label">ZOOM:</span>
+          <button id="btnZoomOut" class="zoom-btn" title="Zoom Out (-)">−</button>
+          <span id="zoomDisplay" class="zoom-value">85%</span>
+          <button id="btnZoomIn" class="zoom-btn" title="Zoom In (+)">+</button>
+          <button id="btnZoomReset" class="zoom-btn fit-btn" title="Fit Entire Arena">⛶ FIT</button>
+        </div>
       </div>
 
-      <!-- Model Roster & Selector -->
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 10px; margin-bottom: 4px; background: rgba(30, 41, 59, 0.5); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.2);">
-        <span style="color: #94a3b8;">MODEL:</span>
-        <select id="ollamaModelSelect" style="background: #0f172a; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; font-size: 10px; padding: 1px 4px; outline: none; flex: 1; margin: 0 4px;">
-          <option value="hermes3:8b" selected>🪽 Hermes 3 (8B)</option>
-          <option value="llama3.1:8b">🦙 Llama 3.1 (8B)</option>
-          <option value="gemma2:9b">💎 Gemma 2 (9B)</option>
-          <option value="gemma2:27b">💎 Gemma 2 (27B)</option>
-          <option value="command-r:35b">⚡ Command R (35B)</option>
-        </select>
-        <button id="rotateModelBtn" title="Rotate model" style="background: rgba(2, 132, 199, 0.3); border: 1px solid #0284c7; color: #38bdf8; border-radius: 4px; font-size: 9px; padding: 1px 6px; cursor: pointer;">ROTATE</button>
+      <!-- Action Screen Canvas Container -->
+      <div id="canvasContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Interactive Modal (inside action screen, non-blocking) -->
+        <div id="modal">
+          <div class="card">
+            <h1 id="modalTitle">COSMIC LANDER: SPACE ROCKET ODYSSEY</h1>
+            <p id="modalDesc">
+              A web-based lunar lander simulation game that features an integrated Artificial Intelligence control dashboard, allowing different AI models and algorithms to pilot the ship.
+            </p>
+            <div style="margin-bottom: 20px; font-size: 12px; color: #64748b;">
+              <span>Controls: <strong>↑ / W</strong> Thrust &nbsp;|&nbsp; <strong>← → / A D</strong> Turn &nbsp;|&nbsp; <strong>Touch buttons</strong> on mobile</span>
+            </div>
+            <button id="modalBtn" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.5); font-size: 15px; padding: 14px 32px; font-weight: bold; cursor: pointer;">▶ START MISSION</button>
+          </div>
+        </div>
+
+        <!-- Mobile Touch Controls -->
+        <div id="mobileControls">
+          <div style="display: flex; gap: 14px;">
+            <div id="btnLeft" class="touch-btn">◀</div>
+            <div id="btnRight" class="touch-btn">▶</div>
+          </div>
+          <div id="btnThrust" class="touch-btn touch-thrust">▲</div>
+        </div>
       </div>
 
-      <!-- Tribunal Voting & Vector Memory Stats -->
-      <div id="aiLearningStats" style="display: flex; justify-content: space-around; font-size: 10px; color: #94a3b8; margin-bottom: 4px; border-top: 1px solid rgba(56, 189, 248, 0.2); padding-top: 4px;">
-        <span>EP: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
-        <span>WIN: <strong id="aiSuccessRateDisplay" style="color: #4ade80;">0%</strong></span>
-        <span title="Shared Master Vector DB (Curated by Observing Bot)">CURATED: <strong id="curatedVectorsDisplay" style="color: #c084fc;">0</strong></span>
-        <span title="Private Model Vector DB (Exclusive to Active Architecture)">PVT: <strong id="privateVectorsDisplay" style="color: #38bdf8;">0</strong></span>
-        <span>CONS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
+      <!-- Action Screen Footer Status Bar -->
+      <div id="actionScreenFooter">
+        <div class="footer-left">
+          <span class="radar-dot"></span>
+          TARGET: PRIMARY LANDING PAD // SURFACE RADAR LOCK
+        </div>
+        <div class="footer-right" id="actionRadarStatus">
+          DIST TO PAD: <span id="footerPadDist">--</span> | BEARING: <span id="footerBearing">--</span>
+        </div>
       </div>
-
-      <!-- Live Council Votes -->
-      <div id="tribunalVotes" style="display: flex; justify-content: space-between; gap: 4px; font-size: 9px; margin-bottom: 4px; background: rgba(15, 23, 42, 0.6); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.15);">
-        <span id="voteRL" style="color: #94a3b8;">🧠 RL: --</span>
-        <span id="voteLLM" style="color: #94a3b8;">🦙 LLM: --</span>
-        <span id="votePID" style="color: #94a3b8;">🚀 PID: --</span>
-        <span id="voteVDB" style="color: #c084fc;">🌌 RAG: --</span>
-      </div>
-
-      <!-- Autonomous Watchdog & Supervisor Banner -->
-      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 9px; margin-bottom: 4px; padding: 2px 6px; background: rgba(2, 132, 199, 0.15); border-radius: 4px; border: 1px solid rgba(2, 132, 199, 0.3);">
-        <span>🛰️ WATCHDOG: <strong id="watchdogStatus" style="color: #4ade80;">ACTIVE</strong></span>
-        <span>SUPERVISOR: <strong id="supervisorAction" style="color: #38bdf8;">HEALTHY</strong></span>
-      </div>
-
-      <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        Autonomous Tribunal Online. Self-monitoring telemetry active.
-      </div>
-    </div>
-
-    <div class="hud-panel" style="text-align: right; min-width: 140px;">
-      <div class="hud-metric" style="margin-bottom: 4px;">
-        🪙 TOKENS: <strong id="tokenDisplay" style="font-size: 14px; color: #fbbf24;">2000</strong>
-      </div>
-      <div class="hud-metric">V-SPEED: <span id="vSpeedDisplay">0.0 m/s</span></div>
-      <div class="hud-metric">H-SPEED: <span id="hSpeedDisplay">0.0 m/s</span></div>
-      <div class="hud-metric">TILT: <span id="tiltDisplay">0°</span></div>
-      <div class="hud-metric" style="margin-top: 4px; color: #a855f7;">SCORE: <span id="scoreDisplay">0</span></div>
-    </div>
-  </div>
-
-  <!-- Mobile Touch Controls -->
-  <div id="mobileControls">
-    <div style="display: flex; gap: 14px;">
-      <div id="btnLeft" class="touch-btn">◀</div>
-      <div id="btnRight" class="touch-btn">▶</div>
-    </div>
-    <div id="btnThrust" class="touch-btn touch-thrust">▲</div>
-  </div>
-
-  <!-- Interactive Modal (Menu, Win, Game Over) -->
-  <div id="modal">
-    <div class="card">
-      <h1 id="modalTitle">COSMIC LANDER: SPACE ROCKET ODYSSEY</h1>
-      <p id="modalDesc">
-        A web-based lunar lander simulation game that features an integrated Artificial Intelligence control dashboard, allowing different AI models and algorithms to pilot the ship.
-      </p>
-      <div style="margin-bottom: 20px; font-size: 12px; color: #64748b;">
-        <span>Controls: <strong>↑ / W</strong> Thrust &nbsp;|&nbsp; <strong>← → / A D</strong> Turn &nbsp;|&nbsp; <strong>Touch buttons</strong> on mobile</span>
-      </div>
-      <button id="modalBtn" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.5); font-size: 15px; padding: 14px 32px; font-weight: bold; cursor: pointer;">▶ START MISSION</button>
-    </div>
+    </main>
   </div>
 
   <script>
@@ -396,6 +839,15 @@
     const hudStartBtn = document.getElementById('hudStartBtn');
     const hudPauseBtn = document.getElementById('hudPauseBtn');
     const hudResetBtn = document.getElementById('hudResetBtn');
+    const btnZoomOut = document.getElementById('btnZoomOut');
+    const btnZoomIn = document.getElementById('btnZoomIn');
+    const btnZoomReset = document.getElementById('btnZoomReset');
+    const zoomDisplay = document.getElementById('zoomDisplay');
+    const canvasContainer = document.getElementById('canvasContainer');
+    const footerPadDist = document.getElementById('footerPadDist');
+    const footerBearing = document.getElementById('footerBearing');
+    const sidebarPadDist = document.getElementById('sidebarPadDist');
+    const missionStatusBadge = document.getElementById('missionStatusBadge');
 
     function observerSpeak(msg, type = 'info') {
       const observerLog = document.getElementById('observerLog');
@@ -599,12 +1051,58 @@
       }
     }
 
-    let width, height;
+    // Virtual World Arena Dimensions (deterministic coordinates)
+    const ARENA_W = 1200;
+    const ARENA_H = 800;
+
+    // Camera Zoom State (default 85% to give clear breathing room to craft, pad, asteroids)
+    let userZoom = 0.85;
+
+    function updateZoomDisplay() {
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(userZoom * 100)}%`;
+    }
+
+    if (btnZoomOut) {
+      btnZoomOut.addEventListener('click', () => {
+        userZoom = Math.max(0.35, Math.round((userZoom - 0.1) * 100) / 100);
+        updateZoomDisplay();
+      });
+    }
+    if (btnZoomIn) {
+      btnZoomIn.addEventListener('click', () => {
+        userZoom = Math.min(2.2, Math.round((userZoom + 0.1) * 100) / 100);
+        updateZoomDisplay();
+      });
+    }
+    if (btnZoomReset) {
+      btnZoomReset.addEventListener('click', () => {
+        userZoom = 0.85;
+        updateZoomDisplay();
+      });
+    }
+    if (canvasContainer) {
+      canvasContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          userZoom = Math.min(2.2, Math.round((userZoom + 0.05) * 100) / 100);
+        } else {
+          userZoom = Math.max(0.35, Math.round((userZoom - 0.05) * 100) / 100);
+        }
+        updateZoomDisplay();
+      }, { passive: false });
+    }
+
+    let width = 800, height = 600;
     let dpr = 1;
     function resize() {
       dpr = window.devicePixelRatio || 1;
-      width = window.innerWidth;
-      height = window.innerHeight;
+      if (canvasContainer && canvasContainer.clientWidth > 0) {
+        width = canvasContainer.clientWidth;
+        height = canvasContainer.clientHeight;
+      } else {
+        width = window.innerWidth || 800;
+        height = window.innerHeight || 600;
+      }
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = width + 'px';
@@ -742,7 +1240,7 @@
       constructor() {
         this.reset();
       }
-      reset(x = width * 0.25, y = height * 0.35) {
+      reset(x = ARENA_W * 0.25, y = ARENA_H * 0.20) {
         this.x = x;
         this.y = y;
         this.vx = 0.5;
@@ -789,10 +1287,10 @@
         this.x += this.vx;
         this.y += this.vy;
 
-        // Boundary bounce / wrap
+        // Boundary bounce / wrap in virtual arena
         if (this.x < 15) { this.x = 15; this.vx = Math.abs(this.vx) * 0.5; }
-        if (this.x > width - 15) { this.x = width - 15; this.vx = -Math.abs(this.vx) * 0.5; }
-        if (this.y < 15) { this.y = 15; this.vy = Math.abs(this.vy) * 0.5; }
+        if (this.x > ARENA_W - 15) { this.x = ARENA_W - 15; this.vx = -Math.abs(this.vx) * 0.5; }
+        if (this.y < 15) { this.y = 15; this.vy = Math.max(0, this.vy); }
       }
       draw(ctx) {
         // 1. Draw Tactical AR Target Reticle around the rocket (in screen space)
@@ -1008,10 +1506,10 @@
         this.y += this.vy;
         this.rotation += this.rotSpeed;
 
-        if (this.x < -this.radius) this.x = width + this.radius;
-        if (this.x > width + this.radius) this.x = -this.radius;
-        if (this.y < -this.radius) this.y = height + this.radius;
-        if (this.y > height + this.radius) this.y = -this.radius;
+        if (this.x < -this.radius) this.x = ARENA_W + this.radius;
+        if (this.x > ARENA_W + this.radius) this.x = -this.radius;
+        if (this.y < -this.radius) this.y = ARENA_H + this.radius;
+        if (this.y > ARENA_H + this.radius) this.y = -this.radius;
       }
       draw(ctx) {
         ctx.save();
@@ -1093,7 +1591,7 @@
         // 2. Elevated Gantry Foundation Support Pylons (Anchored into lunar ground)
         ctx.strokeStyle = '#475569';
         ctx.lineWidth = 2.5;
-        const groundLevel = height - 35;
+        const groundLevel = ARENA_H - 35;
         // Left Pylon
         ctx.beginPath();
         ctx.moveTo(this.x + 8, this.y + this.height);
@@ -1165,12 +1663,12 @@
       }
     }
 
-    // Stars background
+    // Stars background (within virtual arena)
     const stars = [];
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 180; i++) {
       stars.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
+        x: Math.random() * ARENA_W,
+        y: Math.random() * ARENA_H,
         size: Math.random() * 1.8 + 0.4,
         alpha: Math.random() * 0.8 + 0.2
       });
@@ -1186,7 +1684,7 @@
     let particles = [];
     let asteroids = [];
     let fuelOrbs = [];
-    let landingPad = new LandingPad(width * 0.7, height - 70);
+    let landingPad = new LandingPad(ARENA_W * 0.7, ARENA_H - 70);
 
     // Dynamic Gravity Curve across 100 levels:
     // Starts at low gravity (0.015g), ramping gradually up to heavy gravity (0.070g)
@@ -1209,20 +1707,20 @@
 
       // Landing pad width scales down with level (140px on Lvl 1 -> 70px on Lvl 100)
       const padWidth = Math.max(70, Math.round(140 - (currentLevel - 1) * 0.7));
-      const padX = width * (0.55 + Math.sin(currentLevel * 0.7) * 0.25);
-      const padY = height - (75 + (currentLevel % 5) * 6);
+      const padX = ARENA_W * (0.50 + Math.sin(currentLevel * 0.7) * 0.22);
+      const padY = ARENA_H - (70 + (currentLevel % 5) * 5);
       landingPad = new LandingPad(padX, padY, padWidth);
 
-      // Rocket spawn location (positioned clearly in open airspace below HUD)
-      rocket.reset(width * (0.24 + (currentLevel % 3) * 0.05), height * 0.35);
+      // Rocket spawn location (positioned clearly in open airspace near top-left of arena)
+      rocket.reset(ARENA_W * (0.22 + (currentLevel % 3) * 0.05), ARENA_H * 0.20);
 
       // Procedural Asteroids count scaling: 0 on Lvl 1, up to 14 on higher levels
       const numAsteroids = Math.min(14, Math.floor((currentLevel - 1) * 0.22));
       for (let i = 0; i < numAsteroids; i++) {
         const speedMultiplier = 0.3 + (currentLevel / 100) * 0.9;
         asteroids.push(new Asteroid(
-          width * (0.28 + (i * 0.065) % 0.55),
-          height * (0.25 + ((i * 37) % 55) * 0.01),
+          ARENA_W * (0.28 + (i * 0.065) % 0.55),
+          ARENA_H * (0.25 + ((i * 37) % 50) * 0.01),
           Math.random() * 18 + 14,
           (Math.random() - 0.5) * speedMultiplier,
           (Math.random() - 0.5) * speedMultiplier
@@ -1233,8 +1731,8 @@
       const numFuel = currentLevel <= 10 ? 3 : (currentLevel <= 40 ? 2 : 1);
       for (let f = 0; f < numFuel; f++) {
         fuelOrbs.push(new FuelOrb(
-          width * (0.3 + f * 0.2),
-          height * (0.3 + ((f * 17) % 30) * 0.01)
+          ARENA_W * (0.3 + f * 0.2),
+          ARENA_H * (0.3 + ((f * 17) % 30) * 0.01)
         ));
       }
 
@@ -1286,7 +1784,7 @@
           } else {
             explodeRocket(`Hard impact! V-Speed: ${vSpeed.toFixed(1)} m/s (Limit: 2.2)`);
           }
-        } else if (rocket.y + 16 >= height - 35) {
+        } else if (rocket.y + 16 >= ARENA_H - 35) {
           // Crashed on terrain
           explodeRocket('Crashed into lunar surface!');
         }
@@ -1427,8 +1925,25 @@
     function loop() {
       requestAnimationFrame(loop);
 
-      ctx.fillStyle = '#030611';
+      // 1. Reset transform & Clear canvas viewport in CSS pixels
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#02040a';
       ctx.fillRect(0, 0, width, height);
+
+      // 2. Camera Transform: Center & Zoom Virtual Arena
+      const baseScale = Math.min(width / ARENA_W, height / ARENA_H);
+      const currentScale = baseScale * userZoom;
+      const offsetX = (width - ARENA_W * currentScale) / 2;
+      const offsetY = (height - ARENA_H * currentScale) / 2;
+
+      ctx.save();
+      ctx.translate(offsetX, offsetY);
+      ctx.scale(currentScale, currentScale);
+
+      // Arena boundary backdrop border
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, ARENA_W, ARENA_H);
 
       // Starfield background
       ctx.save();
@@ -1443,9 +1958,9 @@
       // Tactical Guidance Corridor (Dashed neon green beam from ship to pad)
       if (!rocket.crashed && !rocket.landed && typeof landingPad !== 'undefined') {
         ctx.save();
-        ctx.strokeStyle = 'rgba(74, 222, 128, 0.35)';
-        ctx.lineWidth = 1.3;
-        ctx.setLineDash([5, 7]);
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.4)';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([6, 8]);
         ctx.beginPath();
         ctx.moveTo(rocket.x, rocket.y);
         ctx.lineTo(landingPad.x + landingPad.width / 2, landingPad.y);
@@ -1456,28 +1971,28 @@
 
       // Draw Lunar Ground & Surface Bedrock
       ctx.save();
-      const groundY = height - 35;
-      const groundGrad = ctx.createLinearGradient(0, groundY, 0, height);
+      const groundY = ARENA_H - 35;
+      const groundGrad = ctx.createLinearGradient(0, groundY, 0, ARENA_H);
       groundGrad.addColorStop(0, '#1e293b');
       groundGrad.addColorStop(1, '#070b14');
       ctx.fillStyle = groundGrad;
-      ctx.fillRect(0, groundY, width, 35);
+      ctx.fillRect(0, groundY, ARENA_W, 35);
 
       // Neon surface horizon border
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(0, groundY);
-      ctx.lineTo(width, groundY);
+      ctx.lineTo(ARENA_W, groundY);
       ctx.stroke();
 
       // Surface radar grid hashes
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
       ctx.lineWidth = 1;
-      for (let gx = 0; gx < width; gx += 45) {
+      for (let gx = 0; gx < ARENA_W; gx += 45) {
         ctx.beginPath();
         ctx.moveTo(gx, groundY);
-        ctx.lineTo(gx, height);
+        ctx.lineTo(gx, ARENA_H);
         ctx.stroke();
       }
 
@@ -1486,13 +2001,13 @@
       ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
       ctx.textAlign = 'right';
       for (let altMark = 100; altMark <= 600; altMark += 100) {
-        const my = (height - 35) - altMark;
+        const my = (ARENA_H - 35) - altMark;
         if (my > 50) {
-          ctx.fillText(`-${altMark}m`, width - 12, my + 3);
+          ctx.fillText(`-${altMark}m`, ARENA_W - 12, my + 3);
           ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
           ctx.beginPath();
-          ctx.moveTo(width - 8, my);
-          ctx.lineTo(width - 3, my);
+          ctx.moveTo(ARENA_W - 8, my);
+          ctx.lineTo(ARENA_W - 3, my);
           ctx.stroke();
         }
       }
@@ -1543,7 +2058,7 @@
         ctx.font = 'bold 11px monospace';
         ctx.fillStyle = '#f87171';
         ctx.textAlign = 'center';
-        ctx.fillText('💥 SHIP RE-LAUNCHING...', rocket.x, Math.min(height - 50, rocket.y));
+        ctx.fillText('💥 SHIP RE-LAUNCHING...', rocket.x, Math.min(ARENA_H - 50, rocket.y));
         ctx.restore();
       }
 
@@ -1555,7 +2070,9 @@
         if (p.life <= 0) particles.splice(i, 1);
       }
 
-      // Update HUD metrics
+      ctx.restore(); // Camera transform pop
+
+      // 3. Telemetry Overlay & DOM Updates
       fuelBar.style.width = `${rocket.fuel}%`;
       shieldBar.style.width = `${rocket.shield}%`;
 
@@ -1573,16 +2090,46 @@
       tiltDisplay.innerText = `${angleDeg}°`;
       tiltDisplay.className = Math.abs(angleDeg) <= 18 ? 'safe' : 'danger';
 
+      // Distance & bearing to landing pad
+      if (landingPad && !rocket.crashed) {
+        const padCenterX = landingPad.x + landingPad.width / 2;
+        const dist = Math.round(Math.hypot(rocket.x - padCenterX, rocket.y - landingPad.y));
+        const bearingDeg = Math.round(Math.atan2(padCenterX - rocket.x, landingPad.y - rocket.y) * 180 / Math.PI);
+        if (footerPadDist) footerPadDist.innerText = `${dist}m`;
+        if (footerBearing) footerBearing.innerText = `${bearingDeg > 0 ? '+' : ''}${bearingDeg}°`;
+        if (sidebarPadDist) sidebarPadDist.innerText = `${dist}m`;
+      }
+
+      // Mission status badge
+      if (missionStatusBadge) {
+        if (gameState === 'PLAYING') {
+          missionStatusBadge.innerText = 'IN FLIGHT';
+          missionStatusBadge.className = 'box-badge highlight';
+        } else if (gameState === 'PAUSED') {
+          missionStatusBadge.innerText = 'PAUSED';
+          missionStatusBadge.className = 'box-badge warning';
+        } else if (gameState === 'WON') {
+          missionStatusBadge.innerText = 'TOUCHDOWN';
+          missionStatusBadge.className = 'box-badge safe';
+        } else if (gameState === 'GAMEOVER') {
+          missionStatusBadge.innerText = 'HULL BREACH';
+          missionStatusBadge.className = 'box-badge danger';
+        } else {
+          missionStatusBadge.innerText = 'STANDBY';
+          missionStatusBadge.className = 'box-badge safe';
+        }
+      }
+
       // Paused screen banner
       if (gameState === 'PAUSED') {
         ctx.save();
         ctx.fillStyle = 'rgba(3, 6, 17, 0.65)';
         ctx.fillRect(0, 0, width, height);
         ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 26px Orbitron, sans-serif';
+        ctx.font = 'bold 24px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('MISSION PAUSED', width / 2, height / 2 - 12);
-        ctx.font = '13px Orbitron, sans-serif';
+        ctx.font = '12px monospace';
         ctx.fillStyle = '#94a3b8';
         ctx.fillText('Click RESUME to continue flight', width / 2, height / 2 + 18);
         ctx.restore();
@@ -2040,7 +2587,7 @@
 
         let stepReward = 0;
         if (rlAgent.prevDistToPad !== null) stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
-        if (rocket.y > height - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
+        if (rocket.y > ARENA_H - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
         if (rocket.fuel <= 0) stepReward -= 5;
         rlAgent.stepUpdate(qState, stepReward);
 
@@ -2149,7 +2696,7 @@
 
         let stepReward = 0;
         if (rlAgent.prevDistToPad !== null) stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
-        if (rocket.y > height - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
+        if (rocket.y > ARENA_H - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
         if (rocket.fuel <= 0) stepReward -= 5;
         rlAgent.stepUpdate(state, stepReward);
 
