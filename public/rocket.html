@@ -1225,6 +1225,24 @@
         osc.start(now);
         osc.stop(now + 0.5);
       }
+      pulseRCS() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(110, now + 0.06);
+          gain.gain.setValueAtTime(0.018, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } catch(e) {}
+      }
       playWin() {
         this.init();
         if (!this.ctx) return;
@@ -1295,13 +1313,73 @@
         this.crashed = false;
         this.landed = false;
         this.radius = 16;
+        // Two side stabilizing thrusters (port & starboard RCS pods)
+        this.leftStabilizer = false;
+        this.rightStabilizer = false;
+        this.autoStabilize = true;
       }
       update(gravity = 0.038) {
         if (this.crashed || this.landed) return;
 
-        // Rotation
-        if (keys.left) this.angle -= this.rotationSpeed;
-        if (keys.right) this.angle += this.rotationSpeed;
+        this.leftStabilizer = false;
+        this.rightStabilizer = false;
+
+        // Steering / Attitude control via side stabilizing thrusters
+        if (keys.left) {
+          this.angle -= this.rotationSpeed;
+          this.rightStabilizer = true; // Starboard stabilizer fires outward to yaw craft left
+          this.vx += Math.cos(this.angle + Math.PI / 2) * 0.02;
+          this.vy += Math.sin(this.angle + Math.PI / 2) * 0.02;
+          if (Math.random() < 0.25) sound.pulseRCS();
+        }
+        if (keys.right) {
+          this.angle += this.rotationSpeed;
+          this.leftStabilizer = true; // Port stabilizer fires outward to yaw craft right
+          this.vx -= Math.cos(this.angle + Math.PI / 2) * 0.02;
+          this.vy -= Math.sin(this.angle + Math.PI / 2) * 0.02;
+          if (Math.random() < 0.25) sound.pulseRCS();
+        }
+
+        // Active Gyro Autostabilization (Side thrusters automatically damp angular spin & right the craft)
+        if (!keys.left && !keys.right && this.autoStabilize) {
+          let angleDiff = this.angle - (-Math.PI / 2);
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+          if (angleDiff < -0.06) {
+            // Tilting left -> Port stabilizer counter-fires to restore vertical stance
+            this.angle += Math.min(0.022, -angleDiff * 0.18);
+            this.leftStabilizer = true;
+            if (Math.random() < 0.15) sound.pulseRCS();
+          } else if (angleDiff > 0.06) {
+            // Tilting right -> Starboard stabilizer counter-fires to restore vertical stance
+            this.angle -= Math.min(0.022, angleDiff * 0.18);
+            this.rightStabilizer = true;
+            if (Math.random() < 0.15) sound.pulseRCS();
+          }
+        }
+
+        // Side stabilizing thruster particle emissions (cyan plasma/cold-gas puffs)
+        if (this.leftStabilizer) {
+          const pAngle = this.angle - Math.PI / 2;
+          particles.push(new ExhaustParticle(
+            this.x + Math.cos(pAngle) * 11,
+            this.y + Math.sin(pAngle) * 11,
+            Math.cos(pAngle) * (Math.random() * 2.5 + 1.2),
+            Math.sin(pAngle) * (Math.random() * 2.5 + 1.2),
+            '#38bdf8'
+          ));
+        }
+        if (this.rightStabilizer) {
+          const sAngle = this.angle + Math.PI / 2;
+          particles.push(new ExhaustParticle(
+            this.x + Math.cos(sAngle) * 11,
+            this.y + Math.sin(sAngle) * 11,
+            Math.cos(sAngle) * (Math.random() * 2.5 + 1.2),
+            Math.sin(sAngle) * (Math.random() * 2.5 + 1.2),
+            '#38bdf8'
+          ));
+        }
 
         // Main Engine Thrust
         if (keys.thrust && this.fuel > 0) {
@@ -1389,6 +1467,11 @@
         const spd = Math.hypot(this.vx, this.vy).toFixed(1);
         ctx.fillStyle = '#e2e8f0';
         ctx.fillText(`ALT: ${alt}m | ${spd} m/s`, this.x + boxSize + 5, this.y + 8);
+
+        // Stabilizing Thrusters Live Indicator
+        const stabTag = (this.leftStabilizer ? '◀' : '·') + ' STAB ' + (this.rightStabilizer ? '▶' : '·');
+        ctx.fillStyle = (this.leftStabilizer || this.rightStabilizer) ? '#00f2fe' : '#64748b';
+        ctx.fillText(stabTag, this.x + boxSize + 5, this.y + 20);
         ctx.restore();
 
         // 2. Draw Rocket Hull (Oriented in Local Rotational Space)
@@ -1416,6 +1499,79 @@
           ctx.moveTo(-3, 18);
           ctx.lineTo(0, 18 + flameLen * 0.6);
           ctx.lineTo(3, 18);
+          ctx.closePath();
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Two Side Stabilizing Thruster Pods (Port & Starboard)
+        // Port (Left) Stabilizer Housing & Nozzle
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(-12, -2, 4, 8);
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.moveTo(-12, 0);
+        ctx.lineTo(-15, -2);
+        ctx.lineTo(-15, 6);
+        ctx.lineTo(-12, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Starboard (Right) Stabilizer Housing & Nozzle
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(8, -2, 4, 8);
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.moveTo(12, 0);
+        ctx.lineTo(15, -2);
+        ctx.lineTo(15, 6);
+        ctx.lineTo(12, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Port (Left) Stabilizer Active Plasma Jet
+        if (this.leftStabilizer) {
+          ctx.save();
+          const rcsLen = 10 + Math.random() * 8;
+          ctx.beginPath();
+          ctx.moveTo(-15, 0);
+          ctx.lineTo(-15 - rcsLen, 2);
+          ctx.lineTo(-15, 4);
+          ctx.closePath();
+          ctx.fillStyle = '#00f2fe';
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 10;
+          ctx.fill();
+          // Core needle
+          ctx.beginPath();
+          ctx.moveTo(-15, 1);
+          ctx.lineTo(-15 - rcsLen * 0.5, 2);
+          ctx.lineTo(-15, 3);
+          ctx.closePath();
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Starboard (Right) Stabilizer Active Plasma Jet
+        if (this.rightStabilizer) {
+          ctx.save();
+          const rcsLen = 10 + Math.random() * 8;
+          ctx.beginPath();
+          ctx.moveTo(15, 0);
+          ctx.lineTo(15 + rcsLen, 2);
+          ctx.lineTo(15, 4);
+          ctx.closePath();
+          ctx.fillStyle = '#00f2fe';
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 10;
+          ctx.fill();
+          // Core needle
+          ctx.beginPath();
+          ctx.moveTo(15, 1);
+          ctx.lineTo(15 + rcsLen * 0.5, 2);
+          ctx.lineTo(15, 3);
           ctx.closePath();
           ctx.fillStyle = '#ffffff';
           ctx.fill();
@@ -1497,15 +1653,15 @@
     }
 
     class ExhaustParticle {
-      constructor(x, y, vx, vy) {
+      constructor(x, y, vx, vy, customColor = null) {
         this.x = x;
         this.y = y;
         this.vx = vx;
         this.vy = vy;
-        this.life = 20;
-        this.maxLife = 20;
-        this.size = Math.random() * 4 + 2;
-        this.color = Math.random() > 0.4 ? '#f59e0b' : Math.random() > 0.5 ? '#ef4444' : '#fef08a';
+        this.life = customColor ? 14 : 20;
+        this.maxLife = this.life;
+        this.size = customColor ? (Math.random() * 2.5 + 1.2) : (Math.random() * 4 + 2);
+        this.color = customColor || (Math.random() > 0.4 ? '#f59e0b' : Math.random() > 0.5 ? '#ef4444' : '#fef08a');
       }
       update() {
         this.x += this.vx;
@@ -1515,10 +1671,10 @@
       }
       draw(ctx) {
         ctx.save();
-        ctx.globalAlpha = this.life / this.maxLife;
+        ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, Math.max(0.5, this.size), 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
