@@ -1035,11 +1035,9 @@
         <div class="model-row">
           <span class="t-label" style="font-size: 9px;">MODEL:</span>
           <select id="ollamaModelSelect" class="cyber-select model-select">
-            <option value="hermes3:8b" selected>🪽 Hermes 3 (8B)</option>
-            <option value="llama3.1:8b">🦙 Llama 3.1 (8B)</option>
+            <option value="command-r:35b" selected>⚡ Command R (35B)</option>
             <option value="gemma2:9b">💎 Gemma 2 (9B)</option>
             <option value="gemma2:27b">💎 Gemma 2 (27B)</option>
-            <option value="command-r:35b">⚡ Command R (35B)</option>
           </select>
           <button id="rotateModelBtn" class="small-btn">ROTATE</button>
           <button id="clearQDimBtn" class="small-btn" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" title="Wipe Q-Table and reset Q-DIM to 0">CLEAR Q</button>
@@ -1089,7 +1087,7 @@
         <div id="lunarStationsRow" class="stations-row">
           <div class="stations-header">
             <span class="stations-title">🏗️ LUNAR SPACE STATIONS:</span>
-            <span id="activeStationBadge" class="station-badge">🪽 HERMES 3 [1 MOD]</span>
+            <span id="activeStationBadge" class="station-badge">⚡ COMMAND R [1 MOD]</span>
           </div>
           <div id="stationGridTelemetry" class="station-grid-telemetry">
             <!-- Dynamic bot station badges -->
@@ -1099,7 +1097,7 @@
         <!-- Live Council Votes (3-Agent Tribunal) -->
         <div id="tribunalVotes" class="votes-row">
           <span id="voteRL" class="vote-pill" style="color: #38bdf8;">🧠 RL: --</span>
-          <span id="voteLLM" class="vote-pill" style="color: #e2e8f0;">🦙 LLM: --</span>
+          <span id="voteLLM" class="vote-pill" style="color: #e2e8f0;">⚡ LLM: --</span>
           <span id="votePID" class="vote-pill" style="color: #38bdf8;">🚀 PID: --</span>
         </div>
 
@@ -1133,7 +1131,7 @@
           <span id="observerBadge" class="comms-badge">TRANSMITTING</span>
         </div>
         <div id="observerLog" class="observer-log-container">
-          <div style="color: #a5f3fc;"><strong style="color: #4ade80;">[OBSERVER]:</strong> Ready. Click <strong>[▶ START]</strong> in the top box to launch flight! AI Tribunal loaded with Hermes 3. Zoom controls available above action screen.</div>
+          <div style="color: #a5f3fc;"><strong style="color: #4ade80;">[OBSERVER]:</strong> Ready. Click <strong>[▶ START]</strong> in the top box to launch flight! AI Tribunal loaded with Command R. Zoom controls available above action screen.</div>
         </div>
       </div>
     </aside>
@@ -1398,8 +1396,8 @@
       }
     }
 
-    // Dynamic Multi-Model Roster with Hermes 3 leading candidate
-    const OLLAMA_MODELS = ['hermes3:8b', 'llama3.1:8b', 'gemma2:9b', 'gemma2:27b', 'command-r:35b'];
+    // Dynamic Multi-Model Roster (Command R and Gemma 2)
+    const OLLAMA_MODELS = ['command-r:35b', 'gemma2:9b', 'gemma2:27b'];
     let currentModelIndex = 0;
     function getActiveModelName() {
       return OLLAMA_MODELS[currentModelIndex % OLLAMA_MODELS.length];
@@ -1485,7 +1483,7 @@
         aiThought.innerText = `🧠 Q-Learning Pilot Active: Ep #${rlAgent.episodes} | Explr: ${(rlAgent.epsilon * 100).toFixed(0)}%`;
       } else if (mode === 'ollama') {
         const activeM = getActiveModelName();
-        const modelIcon = activeM.startsWith('hermes') ? '🪽' : (activeM.startsWith('llama') ? '🦙' : (activeM.startsWith('gemma') ? '💎' : '⚡'));
+        const modelIcon = activeM.startsWith('command') ? '⚡' : '💎';
         aiThought.innerText = `${modelIcon} Ollama Local LLM Pilot: Querying [${activeM}] on port 11434...`;
       } else {
         aiThought.innerText = `🚀 Heuristic Flight Guidance Computer Online`;
@@ -2730,27 +2728,16 @@
     // just underneath the horizon line, expanding on every successful touchdown.
     // ==========================================
     const BOT_STATIONS_META = {
-      'hermes3:8b': {
-        name: 'HERMES OUTPOST',
-        shortName: 'Hermes 3',
-        icon: '🪽',
-        themeColor: '#38bdf8', // Neon Cyan
-        accentColor: '#0284c7',
-        windowColor: 'rgba(56, 189, 248, 0.85)',
+      'command-r:35b': {
+        name: 'COMMAND CITADEL',
+        shortName: 'Command R',
+        icon: '⚡',
+        themeColor: '#fbbf24', // Amber Gold
+        accentColor: '#d97706',
+        windowColor: 'rgba(251, 191, 36, 0.85)',
         slotIndex: 0,
-        x: 105,
-        role: 'Avionics & Telemetry Hub'
-      },
-      'llama3.1:8b': {
-        name: 'LLAMA BASE',
-        shortName: 'Llama 3.1',
-        icon: '🦙',
-        themeColor: '#4ade80', // Emerald Green
-        accentColor: '#16a34a',
-        windowColor: 'rgba(74, 222, 128, 0.85)',
-        slotIndex: 1,
-        x: 270,
-        role: 'Neural Biosphere Colony'
+        x: 160,
+        role: 'Industrial Regolith Smelter'
       },
       'gemma2:9b': {
         name: 'GEMMA CITADEL',
@@ -2759,8 +2746,8 @@
         themeColor: '#c084fc', // Violet Diamond
         accentColor: '#9333ea',
         windowColor: 'rgba(192, 132, 252, 0.85)',
-        slotIndex: 2,
-        x: 435,
+        slotIndex: 1,
+        x: 390,
         role: 'Deep Core Precision Lab'
       },
       'gemma2:27b': {
@@ -2770,20 +2757,9 @@
         themeColor: '#818cf8', // Indigo Quantum
         accentColor: '#4f46e5',
         windowColor: 'rgba(129, 140, 248, 0.85)',
-        slotIndex: 3,
-        x: 600,
+        slotIndex: 2,
+        x: 630,
         role: 'Quantum Hyper-Compute Node'
-      },
-      'command-r:35b': {
-        name: 'COMMAND CITADEL',
-        shortName: 'Command R',
-        icon: '⚡',
-        themeColor: '#fbbf24', // Amber Gold
-        accentColor: '#d97706',
-        windowColor: 'rgba(251, 191, 36, 0.85)',
-        slotIndex: 4,
-        x: 765,
-        role: 'Industrial Regolith Smelter'
       },
       'rl': {
         name: 'DEEP-Q NEXUS',
@@ -2792,8 +2768,8 @@
         themeColor: '#f43f5e', // Rose / Neon Crimson
         accentColor: '#e11d48',
         windowColor: 'rgba(244, 63, 94, 0.85)',
-        slotIndex: 5,
-        x: 930,
+        slotIndex: 3,
+        x: 870,
         role: 'Self-Optimizing Q-Node'
       },
       'human': {
@@ -2803,8 +2779,8 @@
         themeColor: '#00f2fe', // Aqua Neon
         accentColor: '#0284c7',
         windowColor: 'rgba(0, 242, 254, 0.85)',
-        slotIndex: 6,
-        x: 1095,
+        slotIndex: 4,
+        x: 1080,
         role: 'Primary Expedition Base'
       }
     };
@@ -4980,7 +4956,7 @@
 
     function getActivePrivateDB() {
       const currentM = getActiveModelName();
-      return privateVectorDBs[currentM] || privateVectorDBs['hermes3:8b'] || privateVectorDBs[OLLAMA_MODELS[0]];
+      return privateVectorDBs[currentM] || privateVectorDBs['command-r:35b'] || privateVectorDBs[OLLAMA_MODELS[0]];
     }
 
     // Aliased for backward compatibility
@@ -5339,7 +5315,7 @@
 
         // Update live vote badges (3 agents) and RL telemetry in HUD
         if (aiCycleCounter % 6 === 0) {
-          const modelIcon = shortModel.startsWith('hermes') ? '🪽' : (shortModel.startsWith('llama') ? '🦙' : (shortModel.startsWith('gemma') ? '💎' : '⚡'));
+          const modelIcon = shortModel.startsWith('command') ? '⚡' : '💎';
           const rlTag = formatActionAbbr(voteRLAction.tag);
           const llmTag = formatActionAbbr(voteLLMAction ? voteLLMAction.tag : '...');
           const pidTag = formatActionAbbr(votePIDAction.tag);
@@ -5731,7 +5707,7 @@
       if (typeof updateVectorHUDDisplays === 'function') updateVectorHUDDisplays();
 
       // 3. Observer Initial Mission Transmission to Top-Left Box
-      observerSpeak("Systems nominal. Tactical action screen online. The [▶ START] button is located directly above this box. Autonomous Tribunal calibrated with 2000 tokens on Hermes 3.", "info");
+      observerSpeak("Systems nominal. Tactical action screen online. The [▶ START] button is located directly above this box. Autonomous Tribunal calibrated with 2000 tokens on Command R.", "info");
     }
 
     if (document.readyState === 'loading') {
