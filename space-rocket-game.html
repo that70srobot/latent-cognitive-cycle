@@ -1729,6 +1729,7 @@
     let particles = [];
     let asteroids = [];
     let fuelOrbs = [];
+    let flightCheckpoints = []; // Trajectory waypoints for Vector DB memory
     let landingPad = new LandingPad(ARENA_W * 0.7, ARENA_H - 70);
 
     // Dynamic Gravity Curve across 100 levels:
@@ -1749,6 +1750,7 @@
       particles = [];
       asteroids = [];
       fuelOrbs = [];
+      flightCheckpoints = [];
 
       // Landing pad width scales down with level (140px on Lvl 1 -> 70px on Lvl 100)
       const padWidth = Math.max(70, Math.round(140 - (currentLevel - 1) * 0.7));
@@ -1880,6 +1882,15 @@
       } else if (typeof vectorDB !== 'undefined') {
         const emb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
         vectorDB.insertMemory(emb, 'WIN', { thrust: true, left: keys.left, right: keys.right }, `Touchdown Lvl ${currentLevel}`);
+        if (flightCheckpoints && flightCheckpoints.length > 0) {
+          const step = Math.max(1, Math.floor(flightCheckpoints.length / 3));
+          for (let idx = 0; idx < flightCheckpoints.length; idx += step) {
+            const cp = flightCheckpoints[idx];
+            const alt = Math.round(cp.padY - cp.y);
+            const phase = alt > 240 ? 'HIGH_APPROACH' : (alt > 90 ? 'MID_GLIDE' : 'FINAL_FLARE');
+            vectorDB.insertMemory(cp.emb, 'WIN', cp.action, `Waypt ${phase} (+${alt}px)`);
+          }
+        }
       }
 
       observerSpeak(`Touchdown confirmed in Sector ${currentLevel}! +50 Tokens rewarded (Balance: ${aiTokens}). Flight vector curated into Master DB.`, 'success');
@@ -2195,20 +2206,31 @@
           { name: 'THRUST_RIGHT', thrust: true, left: false, right: true }
         ];
 
-        this.alpha = 0.22;       // Learning rate
-        this.gamma = 0.94;       // Discount factor
-        this.epsilon = 0.65;     // Initial exploration rate
-        this.minEpsilon = 0.05;  // Exploitation threshold
-        this.decay = 0.985;      // Epsilon decay per episode
+        this.alpha = 0.18;       // Learning rate (slightly lower for stability with traces)
+        this.gamma = 0.96;       // Discount factor (raised — macro-actions shorten effective horizon)
+        this.epsilon = 0.40;     // Initial exploration (lowered — teacher warm-start fills the gap)
+        this.minEpsilon = 0.04;  // Exploitation floor
+        this.decay = 0.990;      // Slower decay — agent needs time to explore variations
+        this.tau = 1.2;          // Boltzmann temperature (softmax exploration)
 
         this.qTable = {};
         this.episodes = 0;
         this.wins = 0;
-        this.recentHistory = []; // Last 20 outcomes
+        this.recentHistory = []; // Last 25 outcomes
 
         this.prevState = null;
         this.prevActionIdx = null;
         this.prevDistToPad = null;
+
+        // Phase 2: Macro-action commitment (decide every N frames, commit between)
+        this.MACRO_INTERVAL = 8;
+        this.macroAction = null;      // Current committed action choice
+        this.macroFramesLeft = 0;     // Countdown within current macro window
+        this.macroRewardAccum = 0;    // Accumulated reward across the macro window
+
+        // Phase 3: Eligibility traces (TD(λ)) — trajectory memory for backward credit
+        this.lambda = 0.7;
+        this.trajectoryBuffer = [];   // [{state, actionIdx, reward}] across entire episode
 
         this.loadWeights();
       }
@@ -2264,7 +2286,6 @@
 
       getQValues(state) {
         if (!this.qTable[state]) {
-          // Initialize optimistically or neutral
           this.qTable[state] = new Array(this.actions.length).fill(0.0);
         }
         return this.qTable[state];
@@ -2272,33 +2293,84 @@
 
       selectAction(state) {
         const qVals = this.getQValues(state);
-        // Epsilon-Greedy selection
-        if (Math.random() < this.epsilon) {
-          // Exploration: pick random action
+
+        // Hybrid: ε chance of pure random, otherwise Boltzmann softmax
+        if (Math.random() < this.epsilon * 0.3) {
+          // Small chance of pure random for edge exploration
           const idx = Math.floor(Math.random() * this.actions.length);
           return { action: this.actions[idx], index: idx, explored: true, qValue: qVals[idx] || 0 };
-        } else {
-          // Exploitation: pick highest learned Q-value
-          let maxQ = -Infinity;
-          let bestIdx = 0;
-          for (let i = 0; i < qVals.length; i++) {
-            if (qVals[i] > maxQ) {
-              maxQ = qVals[i];
-              bestIdx = i;
-            }
-          }
-          return { action: this.actions[bestIdx], index: bestIdx, explored: false, qValue: maxQ };
         }
+
+        // Boltzmann softmax: probabilistically favor higher Q-values
+        const maxQ = Math.max(...qVals);
+        const expVals = qVals.map(q => Math.exp((q - maxQ) / Math.max(0.1, this.tau)));
+        const sumExp = expVals.reduce((a, b) => a + b, 0);
+        const probs = expVals.map(e => e / sumExp);
+
+        let r = Math.random();
+        let cumulative = 0;
+        for (let i = 0; i < probs.length; i++) {
+          cumulative += probs[i];
+          if (r <= cumulative) {
+            return { action: this.actions[i], index: i, explored: (i !== qVals.indexOf(maxQ)), qValue: qVals[i] };
+          }
+        }
+        // Fallback
+        const lastIdx = this.actions.length - 1;
+        return { action: this.actions[lastIdx], index: lastIdx, explored: true, qValue: qVals[lastIdx] };
       }
 
-      // Step update with immediate shaped reward
+      // Phase 1: Flight-envelope reward computation (replaces distance-based suicide signal)
+      computeStepReward(r, pad, asts, prevDist, currentDist) {
+        const padCenterX = pad.x + pad.width / 2;
+        const dyToPad = pad.y - r.y;
+        const dxToPad = padCenterX - r.x;
+
+        let reward = 0;
+
+        // 1. Altitude-aware target descent rate — reward being at the RIGHT speed, not the fastest
+        const vyTarget = dyToPad > 300 ? 2.5 : (dyToPad > 140 ? 1.5 : (dyToPad > 45 ? 0.8 : 0.3));
+        const vyError = r.vy - vyTarget;
+        reward -= vyError * vyError * 0.12;
+
+        // 2. Tilt alignment — being upright is always good
+        let angleDiff = r.angle - (-Math.PI / 2);
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        reward -= Math.abs(angleDiff) * 0.35;
+
+        // 3. Lateral drift penalty — proportional to how far off-center we are
+        reward -= (Math.abs(dxToPad) / ARENA_W) * 0.25;
+
+        // 4. Tiny directional incentive (whisper, not shout)
+        if (prevDist !== null) reward += (prevDist - currentDist) * 0.01;
+
+        // 5. Out of fuel is bad
+        if (r.fuel <= 0) reward -= 2;
+
+        // 6. Bonus for being in the landing corridor (aligned, slow, close)
+        if (dyToPad < 100 && Math.abs(dxToPad) < 40 && r.vy < 1.5 && r.vy > 0 && Math.abs(angleDiff) < 0.2) {
+          reward += 1.5; // "You're doing it right"
+        }
+
+        return reward;
+      }
+
+      // Step update with immediate shaped reward (1-step Bellman)
       stepUpdate(currentState, reward) {
+        // Store in trajectory buffer for Phase 3 backward trace
         if (this.prevState !== null && this.prevActionIdx !== null) {
+          this.trajectoryBuffer.push({
+            state: this.prevState,
+            actionIdx: this.prevActionIdx,
+            reward: reward
+          });
+
           const prevQ = this.getQValues(this.prevState);
           const currQ = this.getQValues(currentState);
           const maxNextQ = Math.max(...currQ);
 
-          // Bellman Equation: Q(s,a) = Q(s,a) + alpha * [reward + gamma * max(Q(s',a')) - Q(s,a)]
+          // Bellman Equation: Q(s,a) = Q(s,a) + α * [reward + γ * max(Q(s',a')) - Q(s,a)]
           prevQ[this.prevActionIdx] += this.alpha * (reward + this.gamma * maxNextQ - prevQ[this.prevActionIdx]);
         }
       }
@@ -2312,17 +2384,38 @@
 
         // Calculate terminal reward
         const terminalReward = success ? 100 : -80;
+
+        // 1. Direct update on last state-action pair (standard)
         if (this.prevState !== null && this.prevActionIdx !== null) {
           const prevQ = this.getQValues(this.prevState);
           prevQ[this.prevActionIdx] += this.alpha * (terminalReward - prevQ[this.prevActionIdx]);
         }
 
-        // Decay exploration rate as experience grows
-        this.epsilon = Math.max(this.minEpsilon, this.epsilon * this.decay);
+        // 2. Phase 3: Backward eligibility trace — distribute terminal credit through ENTIRE trajectory
+        //    This is the key fix: one successful landing teaches the whole flight path
+        let traceCredit = terminalReward;
+        for (let i = this.trajectoryBuffer.length - 1; i >= 0; i--) {
+          const entry = this.trajectoryBuffer[i];
+          if (entry.state && entry.actionIdx !== null && entry.actionIdx !== undefined) {
+            traceCredit *= this.gamma * this.lambda;
+            const qVals = this.getQValues(entry.state);
+            // Blend trace credit into existing Q-value
+            qVals[entry.actionIdx] += this.alpha * 0.15 * traceCredit;
+          }
+        }
 
+        // Decay exploration rate and Boltzmann temperature as experience grows
+        this.epsilon = Math.max(this.minEpsilon, this.epsilon * this.decay);
+        this.tau = Math.max(0.3, this.tau * 0.998); // Cool softmax over time
+
+        // Reset episode state
         this.prevState = null;
         this.prevActionIdx = null;
         this.prevDistToPad = null;
+        this.macroAction = null;
+        this.macroFramesLeft = 0;
+        this.macroRewardAccum = 0;
+        this.trajectoryBuffer = [];
 
         this.updateHUDStats();
         this.saveWeights();
@@ -2343,33 +2436,103 @@
 
       saveWeights() {
         try {
-          // Keep persistent state in localStorage so the agent remembers across reloads!
           const data = {
             qTable: this.qTable,
             episodes: this.episodes,
             wins: this.wins,
-            epsilon: this.epsilon
+            epsilon: this.epsilon,
+            tau: this.tau
           };
-          localStorage.setItem('cosmic_lander_q_learning', JSON.stringify(data));
+          localStorage.setItem('cosmic_lander_q_v2', JSON.stringify(data));
         } catch (e) {}
       }
 
       loadWeights() {
         try {
-          const raw = localStorage.getItem('cosmic_lander_q_learning');
+          const raw = localStorage.getItem('cosmic_lander_q_v2');
           if (raw) {
             const data = JSON.parse(raw);
             this.qTable = data.qTable || {};
             this.episodes = data.episodes || 0;
             this.wins = data.wins || 0;
-            this.epsilon = data.epsilon !== undefined ? data.epsilon : 0.65;
+            this.epsilon = data.epsilon !== undefined ? data.epsilon : 0.40;
+            this.tau = data.tau !== undefined ? data.tau : 1.2;
             setTimeout(() => this.updateHUDStats(), 100);
           }
         } catch (e) {}
       }
+
+      // Phase 4: Warm-start Q-table from PID heuristic flights
+      warmStartFromHeuristic(pad, gravity) {
+        const EPISODES = 20;
+        let seededStates = 0;
+
+        for (let ep = 0; ep < EPISODES; ep++) {
+          // Simulate a full flight using the PID heuristic controller
+          const simR = {
+            x: ARENA_W * (0.22 + (ep % 3) * 0.05),
+            y: ARENA_H * 0.20,
+            vx: 0, vy: 0,
+            angle: -Math.PI / 2,
+            fuel: 100
+          };
+          const simPad = { x: pad.x, y: pad.y, width: pad.width };
+
+          for (let frame = 0; frame < 700; frame++) {
+            const state = this.discretize(simR, simPad, []);
+            const action = computeHeuristicAction(simR, simPad);
+
+            // Map heuristic action to closest RL action index
+            let bestIdx = 0; // COAST
+            if (action.thrust && action.left) bestIdx = 4;
+            else if (action.thrust && action.right) bestIdx = 5;
+            else if (action.thrust) bestIdx = 1;
+            else if (action.left) bestIdx = 2;
+            else if (action.right) bestIdx = 3;
+
+            // Seed Q-value: set this action higher than alternatives
+            const qVals = this.getQValues(state);
+            qVals[bestIdx] = Math.max(qVals[bestIdx], 5.0);
+            seededStates++;
+
+            // Simulate physics
+            if (action.thrust && simR.fuel > 0) {
+              simR.vx += Math.cos(simR.angle) * 0.13;
+              simR.vy += Math.sin(simR.angle) * 0.13;
+              simR.fuel -= 0.22;
+            }
+            if (action.left) simR.angle -= 0.04;
+            if (action.right) simR.angle += 0.04;
+            simR.vy += gravity;
+            simR.vx *= 0.998;
+            simR.vy *= 0.998;
+            simR.x += simR.vx;
+            simR.y += simR.vy;
+
+            // Boundary clamp
+            if (simR.x < 15) { simR.x = 15; simR.vx = Math.abs(simR.vx) * 0.5; }
+            if (simR.x > ARENA_W - 15) { simR.x = ARENA_W - 15; simR.vx = -Math.abs(simR.vx) * 0.5; }
+            if (simR.y < 15) { simR.y = 15; simR.vy = Math.max(0, simR.vy); }
+
+            // Episode end: reached pad altitude or ground
+            if (simR.y >= simPad.y || simR.y >= ARENA_H - 35) break;
+          }
+        }
+
+        this.saveWeights();
+        return seededStates;
+      }
     }
 
     const rlAgent = new QLearningAgent();
+
+    // Phase 4: Warm-start on fresh agent — seed Q-table with PID flight data
+    if (Object.keys(rlAgent.qTable).length === 0) {
+      const seeded = rlAgent.warmStartFromHeuristic(landingPad, currentGravity);
+      setTimeout(() => {
+        observerSpeak(`Heuristic warm-start complete: ${seeded} state-action pairs seeded from PID flight data. Q-table primed for learning.`, 'curated');
+      }, 500);
+    }
 
     // ==========================================
     // 🌌 VECTOR DATABASE (CURATED MASTER + DEDICATED PRIVATE TIERS)
@@ -2613,6 +2776,17 @@
       const mode = aiModeSelect.value;
       const currentEmb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
 
+      // Phase 5: Sample mid-flight trajectory checkpoints for Vector DB RAG memory
+      if (aiCycleCounter % 40 === 0 && flightCheckpoints.length < 16 && !rocket.crashed && !rocket.landed) {
+        flightCheckpoints.push({
+          emb: currentEmb,
+          action: { thrust: keys.thrust, left: keys.left, right: keys.right },
+          y: rocket.y,
+          vy: rocket.vy,
+          padY: landingPad.y
+        });
+      }
+
       if (mode === 'tribunal') {
         // --- 1. Dual-Tier Hybrid Vector Retrieval (Curated Master + Model Private) ---
         const activePrivateDB = getActivePrivateDB();
@@ -2646,23 +2820,32 @@
         const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
         const qState = rlAgent.discretize(rocket, landingPad, asteroids);
 
-        let stepReward = 0;
-        if (rlAgent.prevDistToPad !== null) stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
-        if (rocket.y > ARENA_H - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
-        if (rocket.fuel <= 0) stepReward -= 5;
-        rlAgent.stepUpdate(qState, stepReward);
+        // Phase 1: Flight-envelope reward (replaces suicide-inducing distance reward)
+        const stepReward = rlAgent.computeStepReward(rocket, landingPad, asteroids, rlAgent.prevDistToPad, currentDist);
+        rlAgent.macroRewardAccum += stepReward;
 
-        const rlChoice = rlAgent.selectAction(qState);
+        // Phase 2: Macro-action — only select new RL action every MACRO_INTERVAL frames
+        let rlChoice;
+        if (rlAgent.macroFramesLeft <= 0) {
+          rlAgent.stepUpdate(qState, rlAgent.macroRewardAccum);
+          rlAgent.macroRewardAccum = 0;
+          rlChoice = rlAgent.selectAction(qState);
+          rlAgent.macroAction = rlChoice;
+          rlAgent.macroFramesLeft = rlAgent.MACRO_INTERVAL;
+          rlAgent.prevState = qState;
+          rlAgent.prevActionIdx = rlChoice.index;
+          rlAgent.prevDistToPad = currentDist;
+        } else {
+          rlChoice = rlAgent.macroAction || rlAgent.selectAction(qState);
+        }
+        rlAgent.macroFramesLeft--;
+
         const voteRLAction = {
           thrust: rlChoice.action.thrust && rocket.fuel > 0,
           left: rlChoice.action.left,
           right: rlChoice.action.right,
           tag: rlChoice.action.name
         };
-
-        rlAgent.prevState = qState;
-        rlAgent.prevActionIdx = rlChoice.index;
-        rlAgent.prevDistToPad = currentDist;
 
         // --- 3. Query Council Member 2: Ollama Local LLM (with Dual-Tier RAG context) ---
         const curWins = curatedMatches.filter(n => n.entry.outcome === 'WIN').length;
@@ -2769,23 +2952,32 @@
         const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
         const state = rlAgent.discretize(rocket, landingPad, asteroids);
 
-        let stepReward = 0;
-        if (rlAgent.prevDistToPad !== null) stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
-        if (rocket.y > ARENA_H - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
-        if (rocket.fuel <= 0) stepReward -= 5;
-        rlAgent.stepUpdate(state, stepReward);
+        // Phase 1: Flight envelope reward
+        const stepReward = rlAgent.computeStepReward(rocket, landingPad, asteroids, rlAgent.prevDistToPad, currentDist);
+        rlAgent.macroRewardAccum += stepReward;
 
-        const choice = rlAgent.selectAction(state);
+        // Phase 2: Macro-action commitment (8 frames)
+        let choice;
+        if (rlAgent.macroFramesLeft <= 0) {
+          rlAgent.stepUpdate(state, rlAgent.macroRewardAccum);
+          rlAgent.macroRewardAccum = 0;
+          choice = rlAgent.selectAction(state);
+          rlAgent.macroAction = choice;
+          rlAgent.macroFramesLeft = rlAgent.MACRO_INTERVAL;
+          rlAgent.prevState = state;
+          rlAgent.prevActionIdx = choice.index;
+          rlAgent.prevDistToPad = currentDist;
+        } else {
+          choice = rlAgent.macroAction || rlAgent.selectAction(state);
+        }
+        rlAgent.macroFramesLeft--;
+
         keys.thrust = choice.action.thrust && rocket.fuel > 0;
         keys.left = choice.action.left;
         keys.right = choice.action.right;
 
         if (keys.thrust) sound.startThrust();
         else sound.stopThrust();
-
-        rlAgent.prevState = state;
-        rlAgent.prevActionIdx = choice.index;
-        rlAgent.prevDistToPad = currentDist;
 
         if (aiCycleCounter % 6 === 0) {
           const rlTag = formatActionAbbr(choice.action.name);
@@ -2948,6 +3140,16 @@
           // 1. Log to the model's dedicated private vector database
           if (pvtDB) {
             pvtDB.insertMemory(emb, 'WIN', finalAction, `[${currentM}] ${note}`);
+            // Phase 5: Also store approach waypoints across flight altitudes
+            if (flightCheckpoints && flightCheckpoints.length > 0) {
+              const step = Math.max(1, Math.floor(flightCheckpoints.length / 3));
+              for (let idx = 0; idx < flightCheckpoints.length; idx += step) {
+                const cp = flightCheckpoints[idx];
+                const alt = Math.round(cp.padY - cp.y);
+                const phase = alt > 240 ? 'HIGH_APPROACH' : (alt > 90 ? 'MID_GLIDE' : 'FINAL_FLARE');
+                pvtDB.insertMemory(cp.emb, 'WIN', cp.action, `[${currentM}] ${phase} (+${alt}px)`);
+              }
+            }
           }
 
           // 2. Observing Bot reviews and curates for the Shared Master Database
