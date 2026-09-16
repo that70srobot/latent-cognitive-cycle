@@ -416,6 +416,80 @@
       box-sizing: border-box;
     }
 
+    /* Challenge & Complexity Vector */
+    .challenge-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 8.5px;
+      background: rgba(15, 23, 42, 0.75);
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+    .challenge-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+    .challenge-label {
+      color: #fb7185;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      font-size: 8px;
+    }
+    .cyber-select-mini {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+      font-family: inherit;
+      font-size: 8.5px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+    .challenge-metrics {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #94a3b8;
+      font-size: 8px;
+      font-family: monospace;
+      padding: 1px 0;
+    }
+    .challenge-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 1px;
+    }
+    .small-btn-accent {
+      flex: 1;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fda4af;
+      font-family: inherit;
+      font-size: 7.5px;
+      font-weight: bold;
+      padding: 2px 2px;
+      border-radius: 3px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .small-btn-accent:hover {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: #f43f5e;
+      color: #ffffff;
+    }
+    .small-btn-accent.active {
+      background: rgba(244, 63, 94, 0.35);
+      border-color: #f43f5e;
+      color: #fff;
+      box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
+    }
+
     /* Observer Terminal */
     .pulse-dot {
       display: inline-block;
@@ -797,6 +871,30 @@
           <span class="regime-label">TIER-2 REGIME:</span>
           <span id="flightRegimeBadge" class="regime-badge phase-transit">ORBITAL TRANSIT</span>
           <span id="regimeWeightsBadge" class="regime-subtext">RL:1.4 | LLM:1.1 | PID:0.7</span>
+        </div>
+
+        <!-- Challenge & Complexity Vector Module -->
+        <div id="challengeRow" class="challenge-row">
+          <div class="challenge-header">
+            <span class="challenge-label">⚡ CHALLENGE:</span>
+            <select id="challengeModeSelect" class="cyber-select-mini">
+              <option value="standard">🟢 Standard (1.0x)</option>
+              <option value="wind">💨 Solar Wind Shear</option>
+              <option value="gravity">🌀 Gravity Vortex</option>
+              <option value="kinetic">🛰️ Kinetic Pad</option>
+              <option value="extreme" selected>⚡ Extreme (Max Complexity)</option>
+            </select>
+          </div>
+          <div class="challenge-metrics">
+            <span title="Live Challenge & Complexity Index">CCI: <strong id="cciDisplay" style="color: #f43f5e;">78%</strong></span>
+            <span title="Cognitive Intrinsic Drive">DRIVE: <strong id="intrinsicDriveDisplay" style="color: #c084fc;">ANOMALY HUNTER</strong></span>
+            <span title="Quantum Research Cores Secured">CORES: <strong id="quantumCoresDisplay" style="color: #38bdf8;">0/3</strong></span>
+          </div>
+          <div class="challenge-actions">
+            <button id="btnSpawnAnomaly" class="small-btn-accent" title="Spawn Gravitational Vortex">+ ANOMALY</button>
+            <button id="btnToggleWind" class="small-btn-accent active" title="Toggle Solar Wind Shear">WIND ON</button>
+            <button id="btnToggleKinetic" class="small-btn-accent" title="Toggle Kinetic Moving Platform">KINETIC PAD</button>
+          </div>
         </div>
 
         <!-- Live Council Votes (3-Agent Tribunal) -->
@@ -1202,6 +1300,56 @@
       }, { passive: false });
     }
 
+    // Challenge Vector Interactive Controls
+    const challengeModeSelect = document.getElementById('challengeModeSelect');
+    const cciDisplay = document.getElementById('cciDisplay');
+    const intrinsicDriveDisplay = document.getElementById('intrinsicDriveDisplay');
+    const quantumCoresDisplay = document.getElementById('quantumCoresDisplay');
+    const btnSpawnAnomaly = document.getElementById('btnSpawnAnomaly');
+    const btnToggleWind = document.getElementById('btnToggleWind');
+    const btnToggleKinetic = document.getElementById('btnToggleKinetic');
+
+    if (challengeModeSelect) {
+      challengeModeSelect.addEventListener('change', (e) => {
+        if (typeof challengeEngine !== 'undefined') {
+          challengeEngine.setMode(e.target.value);
+        }
+      });
+    }
+
+    if (btnSpawnAnomaly) {
+      btnSpawnAnomaly.addEventListener('click', () => {
+        if (typeof gravityAnomalies !== 'undefined') {
+          const rx = ARENA_W * (0.35 + Math.random() * 0.4);
+          const ry = ARENA_H * (0.25 + Math.random() * 0.35);
+          gravityAnomalies.push(new GravityAnomaly(rx, ry, 1.3));
+          observerSpeak(`🌀 Quantum Gravitational Anomaly deployed at [X:${Math.round(rx)}, Y:${Math.round(ry)}].`, 'warn');
+        }
+      });
+    }
+
+    if (btnToggleWind) {
+      btnToggleWind.addEventListener('click', () => {
+        if (typeof challengeEngine !== 'undefined' && typeof windField !== 'undefined') {
+          challengeEngine.windEnabled = !challengeEngine.windEnabled;
+          windField.enabled = challengeEngine.windEnabled;
+          challengeEngine.updateButtons();
+          observerSpeak(`💨 Atmospheric Solar Wind Shear: ${challengeEngine.windEnabled ? 'ACTIVATED' : 'DEACTIVATED'}`, 'info');
+        }
+      });
+    }
+
+    if (btnToggleKinetic) {
+      btnToggleKinetic.addEventListener('click', () => {
+        if (typeof challengeEngine !== 'undefined' && typeof landingPad !== 'undefined') {
+          challengeEngine.kineticPadEnabled = !challengeEngine.kineticPadEnabled;
+          landingPad.isKinetic = challengeEngine.kineticPadEnabled;
+          challengeEngine.updateButtons();
+          observerSpeak(`🛰️ Kinetic Moving Landing Platform: ${challengeEngine.kineticPadEnabled ? 'ENGAGED' : 'LOCKED'}`, 'info');
+        }
+      });
+    }
+
     let width = 800, height = 600;
     let dpr = 1;
     function resize() {
@@ -1475,8 +1623,22 @@
           }
         }
 
-        // Natural Space Gravity & Drift
+        // Natural Space Gravity & Environmental Forces
         this.vy += gravity;
+
+        // 1. Solar Wind Shear Force
+        if (typeof windField !== 'undefined' && windField && windField.enabled) {
+          const wind = windField.getWindAt(this.y);
+          this.vx += wind * 0.016;
+        }
+
+        // 2. Quantum Gravitational Anomaly Attraction
+        if (typeof gravityAnomalies !== 'undefined' && gravityAnomalies) {
+          for (const anom of gravityAnomalies) {
+            anom.applyForce(this);
+          }
+        }
+
         this.vx *= 0.998; // slight drag
         this.vy *= 0.998;
 
@@ -1840,10 +2002,22 @@
 
     class LandingPad {
       constructor(x, y, width = 110) {
+        this.baseX = x;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = 12;
+        this.isKinetic = false;
+        this.oscillationAmp = 90;
+        this.oscillationSpeed = 0.0011;
+      }
+      update() {
+        if (this.isKinetic) {
+          this.x = this.baseX + Math.sin(Date.now() * this.oscillationSpeed) * this.oscillationAmp;
+          this.x = Math.max(25, Math.min(ARENA_W - this.width - 25, this.x));
+        } else {
+          this.x = this.baseX;
+        }
       }
       draw(ctx) {
         ctx.save();
@@ -1910,7 +2084,7 @@
         ctx.restore();
 
         // Perimeter illuminated neon green border
-        ctx.strokeStyle = '#4ade80';
+        ctx.strokeStyle = this.isKinetic ? '#38bdf8' : '#4ade80';
         ctx.lineWidth = 2.5;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
 
@@ -1934,10 +2108,333 @@
 
         // 5. Target Label & Coordinates
         ctx.font = 'bold 10px monospace';
-        ctx.fillStyle = '#4ade80';
+        ctx.fillStyle = this.isKinetic ? '#38bdf8' : '#4ade80';
         ctx.textAlign = 'center';
-        ctx.fillText(`🎯 TARGET PAD [X: ${Math.round(this.x + this.width / 2)}]`, this.x + this.width / 2, this.y + this.height + 15);
+        const kineticTag = this.isKinetic ? ' ⟷ KINETIC' : '';
+        ctx.fillText(`🎯 TARGET PAD [X: ${Math.round(this.x + this.width / 2)}]${kineticTag}`, this.x + this.width / 2, this.y + this.height + 15);
         ctx.restore();
+      }
+    }
+
+    // Atmospheric & Solar Wind Shear Field
+    class WindField {
+      constructor() {
+        this.enabled = true;
+        this.particles = [];
+        for (let i = 0; i < 45; i++) {
+          this.particles.push({
+            x: Math.random() * ARENA_W,
+            y: Math.random() * (ARENA_H - 60),
+            speed: Math.random() * 0.8 + 0.5,
+            length: Math.random() * 20 + 12,
+            alpha: Math.random() * 0.35 + 0.15
+          });
+        }
+      }
+      getWindAt(y) {
+        if (!this.enabled) return 0;
+        // Stratospheric solar wind jetstream (y < 260): blows left (-0.55 to -0.85)
+        if (y < 260) {
+          const gust = Math.sin(Date.now() * 0.0016 + y * 0.02) * 0.25;
+          return -0.65 + gust;
+        }
+        // Crosswind shear layer (260 <= y <= 440): blows right (+0.60 to +0.90)
+        else if (y <= 440) {
+          const gust = Math.cos(Date.now() * 0.002 + y * 0.015) * 0.25;
+          return 0.70 + gust;
+        }
+        // Surface thermal boundary layer (y > 440): gentle left drift (-0.30)
+        else {
+          return -0.30 + Math.sin(Date.now() * 0.0025) * 0.15;
+        }
+      }
+      update() {
+        if (!this.enabled) return;
+        this.particles.forEach(p => {
+          const wind = this.getWindAt(p.y);
+          p.x += wind * p.speed * 2.2;
+          if (p.x < -40) p.x = ARENA_W + 30;
+          if (p.x > ARENA_W + 40) p.x = -30;
+        });
+      }
+      draw(ctx) {
+        if (!this.enabled) return;
+        ctx.save();
+        this.particles.forEach(p => {
+          const wind = this.getWindAt(p.y);
+          const dir = Math.sign(wind) || 1;
+          ctx.strokeStyle = `rgba(56, 189, 248, ${p.alpha})`;
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + dir * p.length, p.y);
+          ctx.stroke();
+
+          // Streamline tip particle
+          ctx.fillStyle = `rgba(56, 189, 248, ${p.alpha * 1.6})`;
+          ctx.beginPath();
+          ctx.arc(p.x + dir * p.length, p.y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Layer boundary indicators
+        ctx.font = '7.5px monospace';
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+        ctx.textAlign = 'left';
+        ctx.fillText('◀ SOLAR WIND JETSTREAM (-0.7 m/s)', 14, 130);
+        ctx.fillText('▶ CROSSWIND SHEAR LAYER (+0.7 m/s)', 14, 330);
+        ctx.fillText('◀ GROUND BOUNDARY DRAFT (-0.3 m/s)', 14, 475);
+        ctx.restore();
+      }
+    }
+
+    // Quantum Gravitational Anomaly Vortex
+    class GravityAnomaly {
+      constructor(x, y, mass = 1.2) {
+        this.x = x;
+        this.y = y;
+        this.mass = mass;
+        this.radius = 24;
+        this.pulse = Math.random() * Math.PI * 2;
+        this.particles = [];
+        for (let i = 0; i < 20; i++) {
+          this.particles.push({
+            angle: (i / 20) * Math.PI * 2,
+            dist: Math.random() * 34 + 10,
+            speed: Math.random() * 0.045 + 0.03,
+            size: Math.random() * 2 + 1
+          });
+        }
+      }
+      update() {
+        this.pulse += 0.04;
+        this.particles.forEach(p => {
+          p.angle += p.speed;
+          p.dist -= 0.14;
+          if (p.dist < 6) p.dist = 38 + Math.random() * 8;
+        });
+      }
+      applyForce(obj) {
+        const dx = this.x - obj.x;
+        const dy = this.y - obj.y;
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq);
+        if (dist > 14 && dist < 360) {
+          const force = (this.mass * 90) / (distSq + 600);
+          obj.vx += (dx / dist) * force;
+          obj.vy += (dy / dist) * force;
+          return force;
+        }
+        return 0;
+      }
+      draw(ctx) {
+        ctx.save();
+        // 1. Distortion halo
+        const glow = 28 + Math.sin(this.pulse) * 6;
+        const grad = ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, glow);
+        grad.addColorStop(0, 'rgba(192, 132, 252, 0.45)');
+        grad.addColorStop(0.5, 'rgba(147, 51, 234, 0.18)');
+        grad.addColorStop(1, 'rgba(147, 51, 234, 0.0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, glow, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Accretion particles
+        this.particles.forEach(p => {
+          const px = this.x + Math.cos(p.angle) * p.dist;
+          const py = this.y + Math.sin(p.angle) * p.dist;
+          ctx.fillStyle = '#c084fc';
+          ctx.shadowColor = '#a855f7';
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(px, py, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // 3. Singularity Core (Dark void + bright magenta event horizon ring)
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#05020c';
+        ctx.fill();
+        ctx.strokeStyle = '#e879f9';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // 4. Tactical Callout Label
+        ctx.font = 'bold 8px monospace';
+        ctx.fillStyle = '#c084fc';
+        ctx.textAlign = 'center';
+        ctx.fillText('🌀 GRAVITY VORTEX', this.x, this.y - glow - 3);
+        ctx.restore();
+      }
+    }
+
+    // Quantum Research Hypercube Data Core
+    class QuantumCore {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 14;
+        this.angle = Math.random() * Math.PI * 2;
+        this.collected = false;
+        this.floatOffset = Math.random() * Math.PI * 2;
+      }
+      update() {
+        this.angle += 0.035;
+        this.floatOffset += 0.045;
+      }
+      checkCollision(r) {
+        if (this.collected) return false;
+        const dx = r.x - this.x;
+        const dy = r.y - (this.y + Math.sin(this.floatOffset) * 4);
+        if (Math.hypot(dx, dy) < r.radius + this.radius) {
+          this.collected = true;
+          return true;
+        }
+        return false;
+      }
+      draw(ctx) {
+        if (this.collected) return;
+        ctx.save();
+        const fy = this.y + Math.sin(this.floatOffset) * 4;
+
+        // Energy aura
+        const grad = ctx.createRadialGradient(this.x, fy, 2, this.x, fy, 22);
+        grad.addColorStop(0, 'rgba(236, 72, 153, 0.45)');
+        grad.addColorStop(0.6, 'rgba(236, 72, 153, 0.12)');
+        grad.addColorStop(1, 'rgba(236, 72, 153, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(this.x, fy, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3D Wireframe Hypercube Projection
+        ctx.save();
+        ctx.translate(this.x, fy);
+        ctx.rotate(this.angle);
+
+        // Outer box
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 1.4;
+        ctx.shadowColor = '#ec4899';
+        ctx.shadowBlur = 8;
+        ctx.strokeRect(-9, -9, 18, 18);
+
+        // Inner rotated box
+        ctx.rotate(Math.PI / 4 + this.angle * 0.5);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(-6, -6, 12, 12);
+
+        // Singularity spark
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Tactical Label
+        ctx.font = 'bold 7.5px monospace';
+        ctx.fillStyle = '#f472b6';
+        ctx.textAlign = 'center';
+        ctx.fillText('💎 QUANTUM CORE', this.x, fy - 18);
+        ctx.restore();
+      }
+    }
+
+    // Dynamic Challenge & Complexity Engine
+    class ChallengeEngine {
+      constructor() {
+        this.mode = 'extreme'; // 'standard', 'wind', 'gravity', 'kinetic', 'extreme'
+        this.windEnabled = true;
+        this.kineticPadEnabled = true;
+        this.cci = 85;
+        this.driveState = 'ANOMALY HUNTER';
+      }
+      setMode(mode) {
+        this.mode = mode;
+        if (mode === 'standard') {
+          this.windEnabled = false;
+          this.kineticPadEnabled = false;
+        } else if (mode === 'wind') {
+          this.windEnabled = true;
+          this.kineticPadEnabled = false;
+        } else if (mode === 'gravity') {
+          this.windEnabled = false;
+          this.kineticPadEnabled = false;
+        } else if (mode === 'kinetic') {
+          this.windEnabled = true;
+          this.kineticPadEnabled = true;
+        } else if (mode === 'extreme') {
+          this.windEnabled = true;
+          this.kineticPadEnabled = true;
+        }
+        if (windField) windField.enabled = this.windEnabled;
+        if (landingPad) landingPad.isKinetic = this.kineticPadEnabled;
+        this.updateButtons();
+        observerSpeak(`⚡ Challenge Vector set to [${mode.toUpperCase()}]. Intrinsic Drive: ${this.driveState}`, 'warn');
+      }
+      updateButtons() {
+        if (btnToggleWind) {
+          btnToggleWind.innerText = this.windEnabled ? 'WIND ON' : 'WIND OFF';
+          btnToggleWind.className = this.windEnabled ? 'small-btn-accent active' : 'small-btn-accent';
+        }
+        if (btnToggleKinetic) {
+          btnToggleKinetic.innerText = this.kineticPadEnabled ? 'KINETIC ON' : 'KINETIC OFF';
+          btnToggleKinetic.className = this.kineticPadEnabled ? 'small-btn-accent active' : 'small-btn-accent';
+        }
+      }
+      evaluateCCI(r, pad, asts, anomalies, wind) {
+        let score = 25; // baseline
+        
+        // 1. Wind shear resistance strain
+        if (this.windEnabled && wind) {
+          const w = Math.abs(wind.getWindAt(r.y));
+          score += Math.min(25, w * 30);
+        }
+        
+        // 2. Gravity vortex warp tension
+        if (anomalies && anomalies.length > 0) {
+          let minAnomDist = Infinity;
+          for (const a of anomalies) {
+            const d = Math.hypot(a.x - r.x, a.y - r.y);
+            if (d < minAnomDist) minAnomDist = d;
+          }
+          if (minAnomDist < 250) {
+            score += Math.min(25, (250 - minAnomDist) * 0.12);
+          }
+        }
+        
+        // 3. Asteroid hazard proximity margin
+        let minAstDist = Infinity;
+        for (const a of asts) {
+          const d = Math.hypot(a.x - r.x, a.y - r.y);
+          if (d < minAstDist) minAstDist = d;
+        }
+        if (minAstDist < 140) {
+          score += Math.min(25, (140 - minAstDist) * 0.22);
+        }
+        
+        // 4. Moving pad kinetic intercept
+        if (this.kineticPadEnabled) {
+          score += 15;
+        }
+
+        this.cci = Math.max(10, Math.min(100, Math.round(score)));
+
+        // Determine Intrinsic Drive state
+        if (quantumCores && quantumCores.length > 0 && !quantumCores.every(c => c.collected)) {
+          this.driveState = 'ANOMALY HUNTER';
+        } else if (minAstDist < 100) {
+          this.driveState = 'DARING SLALOM';
+        } else if (this.windEnabled && wind && Math.abs(wind.getWindAt(r.y)) > 0.5) {
+          this.driveState = 'WIND MASTER';
+        } else {
+          this.driveState = 'PRECISION GLIDE';
+        }
+
+        return this.cci;
       }
     }
 
@@ -1962,8 +2459,14 @@
     let particles = [];
     let asteroids = [];
     let fuelOrbs = [];
+    let gravityAnomalies = [];
+    let quantumCores = [];
+    let quantumCoresHarvested = 0;
+    let totalQuantumCoresInLevel = 3;
     let flightCheckpoints = []; // Trajectory waypoints for Vector DB memory
     let landingPad = new LandingPad(ARENA_W * 0.7, ARENA_H - 70);
+    const windField = new WindField();
+    const challengeEngine = new ChallengeEngine();
 
     // Dynamic Gravity Curve across 100 levels:
     // Starts at low gravity (0.015g), ramping gradually up to heavy gravity (0.070g)
@@ -1983,16 +2486,23 @@
       particles = [];
       asteroids = [];
       fuelOrbs = [];
+      gravityAnomalies = [];
+      quantumCores = [];
       flightCheckpoints = [];
+      quantumCoresHarvested = 0;
 
-      // Landing pad width scales down with level (140px on Lvl 1 -> 70px on Lvl 100)
+      // Landing pad setup & kinetic oscillation mode
       const padWidth = Math.max(70, Math.round(140 - (currentLevel - 1) * 0.7));
       const padX = ARENA_W * (0.50 + Math.sin(currentLevel * 0.7) * 0.22);
       const padY = ARENA_H - (70 + (currentLevel % 5) * 5);
       landingPad = new LandingPad(padX, padY, padWidth);
+      landingPad.isKinetic = challengeEngine.kineticPadEnabled;
 
       // Rocket spawn location (positioned clearly in open airspace near top-left of arena)
       rocket.reset(ARENA_W * (0.22 + (currentLevel % 3) * 0.05), ARENA_H * 0.20);
+
+      // Wind field status
+      windField.enabled = challengeEngine.windEnabled;
 
       // Procedural Asteroids count scaling: 0 on Lvl 1, up to 14 on higher levels
       const numAsteroids = Math.min(14, Math.floor((currentLevel - 1) * 0.22));
@@ -2006,6 +2516,25 @@
           (Math.random() - 0.5) * speedMultiplier
         ));
       }
+
+      // Gravitational Anomaly Wells (Singularity Eddies)
+      const shouldSpawnAnomaly = challengeEngine.mode === 'gravity' || challengeEngine.mode === 'extreme' || currentLevel >= 15;
+      if (shouldSpawnAnomaly) {
+        gravityAnomalies.push(new GravityAnomaly(ARENA_W * 0.48, ARENA_H * 0.38, 1.4));
+        if (challengeEngine.mode === 'extreme' || currentLevel >= 40) {
+          gravityAnomalies.push(new GravityAnomaly(ARENA_W * 0.78, ARENA_H * 0.28, 1.1));
+        }
+      }
+
+      // Quantum Research Cores (High-Challenge Hypercube Relays)
+      totalQuantumCoresInLevel = (challengeEngine.mode === 'extreme' || currentLevel >= 5) ? 3 : 1;
+      for (let q = 0; q < totalQuantumCoresInLevel; q++) {
+        quantumCores.push(new QuantumCore(
+          ARENA_W * (0.35 + q * 0.22),
+          ARENA_H * (0.22 + (q % 2) * 0.18)
+        ));
+      }
+      if (quantumCoresDisplay) quantumCoresDisplay.innerText = `0/${totalQuantumCoresInLevel}`;
 
       // Fuel orbs to sustain navigation (abundant reserves)
       const numFuel = currentLevel <= 10 ? 5 : (currentLevel <= 40 ? 4 : 3);
@@ -2032,6 +2561,30 @@
           scoreDisplay.innerText = score;
           sound.playChime();
           observerSpeak("Fuel canister secured (+80 Fuel Reserve, +250 pts).", "info");
+        }
+      }
+
+      // Check Quantum Cores (High-Challenge Bonus Objectives)
+      for (let i = quantumCores.length - 1; i >= 0; i--) {
+        const core = quantumCores[i];
+        if (core.checkCollision(rocket)) {
+          quantumCores.splice(i, 1);
+          quantumCoresHarvested++;
+          score += 500;
+          aiTokens += 50;
+          rocket.shield = Math.min(100, rocket.shield + 25);
+          if (scoreDisplay) scoreDisplay.innerText = score;
+          if (tokenDisplay) tokenDisplay.innerText = aiTokens;
+          if (shieldBar) shieldBar.style.width = `${rocket.shield}%`;
+          if (quantumCoresDisplay) quantumCoresDisplay.innerText = `${quantumCoresHarvested}/${totalQuantumCoresInLevel}`;
+          sound.playWin();
+          observerSpeak(`💎 QUANTUM CORE SECURED! (+500 pts, +50 Tokens, +25% Shield, Intrinsic Curiosity Boost).`, 'success');
+          
+          // Seed high-ambition victory pattern to Master Curated Vector DB
+          if (typeof vectorDB !== 'undefined' && typeof curatedVectorDB !== 'undefined') {
+            const coreEmb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
+            curatedVectorDB.insertMemory(coreEmb, 'WIN', { thrust: keys.thrust, left: keys.left, right: keys.right }, 'High-Risk Quantum Core Extraction Maneuver', { level: currentLevel, cci: challengeEngine.cci });
+          }
         }
       }
 
@@ -2366,7 +2919,77 @@
         });
       }
 
-      // (D) Own Ship at Center (Cyan Heading Indicator)
+      // (D) Gravity Anomalies (Hostile Gravitational Vortexes - Violet)
+      if (typeof gravityAnomalies !== 'undefined') {
+        gravityAnomalies.forEach(anom => {
+          const dx = anom.x - rocket.x;
+          const dy = anom.y - rocket.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist <= radarRangeWorld) {
+            const bx = cx + dx * scale;
+            const by = cy + dy * scale;
+            ctx.fillStyle = 'rgba(192, 132, 252, 0.9)';
+            ctx.shadowColor = '#c084fc';
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.arc(bx, by, 3, 0, Math.PI * 2);
+            ctx.fill();
+            // Swirling ring
+            ctx.strokeStyle = 'rgba(232, 121, 249, 0.7)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(bx, by, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
+
+      // (E) Quantum Research Cores (Bonus Relays - Shimmering Magenta Diamonds)
+      if (typeof quantumCores !== 'undefined') {
+        quantumCores.forEach(core => {
+          if (!core.collected) {
+            const dx = core.x - rocket.x;
+            const dy = core.y - rocket.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist <= radarRangeWorld) {
+              const bx = cx + dx * scale;
+              const by = cy + dy * scale;
+              ctx.fillStyle = 'rgba(244, 114, 182, 0.95)';
+              ctx.shadowColor = '#ec4899';
+              ctx.shadowBlur = 5;
+              ctx.beginPath();
+              ctx.moveTo(bx, by - 3);
+              ctx.lineTo(bx + 3, by);
+              ctx.lineTo(bx, by + 3);
+              ctx.lineTo(bx - 3, by);
+              ctx.closePath();
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            }
+          }
+        });
+      }
+
+      // (F) Atmospheric Wind Vector (Local Shear Drift Arrow at Perimeter)
+      if (typeof windField !== 'undefined' && windField && windField.enabled) {
+        const curWind = windField.getWindAt(rocket.y);
+        const windAngle = curWind >= 0 ? 0 : Math.PI;
+        const wx = cx + Math.cos(windAngle) * (radarR - 10);
+        const wy = cy;
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(windAngle) * (radarR - 18), cy);
+        ctx.lineTo(wx, wy);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(wx, wy, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // (G) Own Ship at Center (Cyan Heading Indicator)
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(rocket.angle + Math.PI / 2);
@@ -2491,8 +3114,33 @@
       }
       ctx.restore();
 
-      // Landing Pad
-      landingPad.draw(ctx);
+      // Atmospheric Solar Wind Shear Field
+      if (typeof windField !== 'undefined' && windField) {
+        windField.update();
+        windField.draw(ctx);
+      }
+
+      // Gravitational Anomaly Wells (Singularity Eddies)
+      if (typeof gravityAnomalies !== 'undefined' && gravityAnomalies) {
+        gravityAnomalies.forEach(anom => {
+          anom.update();
+          anom.draw(ctx);
+        });
+      }
+
+      // Quantum Research Cores (High-Challenge Hypercube Relays)
+      if (typeof quantumCores !== 'undefined' && quantumCores) {
+        quantumCores.forEach(core => {
+          core.update();
+          core.draw(ctx);
+        });
+      }
+
+      // Landing Pad (with kinetic motion)
+      if (typeof landingPad !== 'undefined' && landingPad) {
+        landingPad.update();
+        landingPad.draw(ctx);
+      }
 
       // Periodic In-Flight Telemetry for Observer Comms Console
       if (gameState === 'PLAYING' && !rocket.crashed && !rocket.landed) {
@@ -2501,7 +3149,7 @@
           const curAlt = Math.max(0, Math.round(landingPad.y - rocket.y));
           const curDx = Math.round(rocket.x - (landingPad.x + landingPad.width / 2));
           const modelName = getActiveModelName();
-          observerSpeak(`In-flight telemetry: Alt ${curAlt}m | Offset ${curDx > 0 ? '+' : ''}${curDx}m | Model: [${modelName}] | V-Spd: ${rocket.vy.toFixed(1)} m/s`, 'info');
+          observerSpeak(`In-flight telemetry: Alt ${curAlt}m | Offset ${curDx > 0 ? '+' : ''}${curDx}m | Model: [${modelName}] | CCI: ${challengeEngine.cci}% [${challengeEngine.driveState}]`, 'info');
         }
       }
 
@@ -2552,6 +3200,18 @@
 
       // Tactical HUD Radar Overlay (Rendered in CSS Screen Space)
       drawTacticalRadar(ctx, width, height);
+
+      // Live Challenge & Complexity Telemetry
+      if (typeof challengeEngine !== 'undefined' && challengeEngine) {
+        const liveCci = challengeEngine.evaluateCCI(rocket, landingPad, asteroids, gravityAnomalies, windField);
+        if (cciDisplay) {
+          cciDisplay.innerText = `${liveCci}%`;
+          cciDisplay.style.color = liveCci > 75 ? '#f43f5e' : (liveCci > 45 ? '#f59e0b' : '#38bdf8');
+        }
+        if (intrinsicDriveDisplay) {
+          intrinsicDriveDisplay.innerText = challengeEngine.driveState;
+        }
+      }
 
       // 3. Telemetry Overlay & DOM Updates
       fuelBar.style.width = `${Math.min(100, Math.max(0, (rocket.fuel / (rocket.maxFuel || 250)) * 100))}%`;
@@ -2745,8 +3405,8 @@
         return { action: this.actions[lastIdx], index: lastIdx, explored: true, qValue: qVals[lastIdx] };
       }
 
-      // Phase 1: Flight-envelope reward computation (replaces distance-based suicide signal)
-      computeStepReward(r, pad, asts, prevDist, currentDist) {
+      // Phase 1: Flight-envelope reward computation with Intrinsic Challenge & Curiosity Drive
+      computeStepReward(r, pad, asts, prevDist, currentDist, state = null) {
         const padCenterX = pad.x + pad.width / 2;
         const dyToPad = pad.y - r.y;
         const dxToPad = padCenterX - r.x;
@@ -2776,6 +3436,39 @@
         // 6. Bonus for being in the landing corridor (aligned, slow, close)
         if (dyToPad < 100 && Math.abs(dxToPad) < 40 && r.vy < 1.5 && r.vy > 0 && Math.abs(angleDiff) < 0.2) {
           reward += 1.5; // "You're doing it right"
+        }
+
+        // 7. Intrinsic Curiosity & Novelty Drive (Desire for Exploration of Uncharted Flight States)
+        if (state) {
+          if (!this.stateVisits) this.stateVisits = {};
+          const visits = this.stateVisits[state] || 0;
+          this.stateVisits[state] = visits + 1;
+          const curiosityBonus = 0.35 / Math.sqrt(visits + 1);
+          reward += curiosityBonus;
+        }
+
+        // 8. Aerodynamic Crosswind Mastery Bonus (Reward fighting turbulence with upright stability)
+        if (typeof windField !== 'undefined' && windField && windField.enabled) {
+          const curWind = Math.abs(windField.getWindAt(r.y));
+          if (curWind > 0.4 && Math.abs(angleDiff) < 0.22) {
+            reward += 0.30;
+          }
+        }
+
+        // 9. Gravity Anomaly Slingshot Traversal Bonus
+        if (typeof gravityAnomalies !== 'undefined' && gravityAnomalies && gravityAnomalies.length > 0) {
+          for (const anom of gravityAnomalies) {
+            const d = Math.hypot(anom.x - r.x, anom.y - r.y);
+            if (d > 35 && d < 130 && r.vy > 0 && r.vy < 3.0) {
+              reward += 0.45; // Orbital sling navigation without hull breach
+              break;
+            }
+          }
+        }
+
+        // 10. Precision Stunt Flare Deceleration Gate
+        if (dyToPad < 130 && dyToPad > 30 && r.vy > 1.2 && r.vy < 2.4 && keys.thrust) {
+          reward += 0.50; // Dynamic flare commitment
         }
 
         return reward;
@@ -3116,8 +3809,11 @@
       const dy = Math.round(pad.y - r.y);
       const vy = Number(r.vy.toFixed(1));
       const vx = Number(r.vx.toFixed(1));
+      const windVal = (typeof windField !== 'undefined' && windField && windField.enabled) ? windField.getWindAt(r.y).toFixed(1) : '0';
+      const cciVal = (typeof challengeEngine !== 'undefined') ? challengeEngine.cci : 50;
+      const driveVal = (typeof challengeEngine !== 'undefined') ? challengeEngine.driveState : 'ACTIVE';
 
-      const prompt = `Rocket state: dy_to_pad=${dy}px, dx_to_pad=${dx}px, vy=${vy}m/s, vx=${vx}m/s. ${ragContext} Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
+      const prompt = `Lander state: dy=${dy}px, dx=${dx}px, vy=${vy}m/s, vx=${vx}m/s, wind=${windVal}m/s, CCI=${cciVal}%, Drive="${driveVal}". ${ragContext} Mission: embrace flight complexity, conquer wind/gravity, and land upright safely. Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
 
       const targetModel = getActiveModelName();
 
@@ -3328,8 +4024,8 @@
         const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
         const qState = rlAgent.discretize(rocket, landingPad, asteroids);
 
-        // Phase 1: Flight-envelope reward (replaces suicide-inducing distance reward)
-        const stepReward = rlAgent.computeStepReward(rocket, landingPad, asteroids, rlAgent.prevDistToPad, currentDist);
+        // Phase 1: Flight-envelope reward with Intrinsic Curiosity & Challenge Drive
+        const stepReward = rlAgent.computeStepReward(rocket, landingPad, asteroids, rlAgent.prevDistToPad, currentDist, qState);
         rlAgent.macroRewardAccum += stepReward;
 
         // Phase 2: Macro-action — only select new RL action every MACRO_INTERVAL frames
@@ -3470,8 +4166,8 @@
         const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
         const state = rlAgent.discretize(rocket, landingPad, asteroids);
 
-        // Phase 1: Flight envelope reward
-        const stepReward = rlAgent.computeStepReward(rocket, landingPad, asteroids, rlAgent.prevDistToPad, currentDist);
+        // Phase 1: Flight envelope reward with Intrinsic Curiosity & Challenge Drive
+        const stepReward = rlAgent.computeStepReward(rocket, landingPad, asteroids, rlAgent.prevDistToPad, currentDist, state);
         rlAgent.macroRewardAccum += stepReward;
 
         // Phase 2: Macro-action commitment (8 frames)
