@@ -303,8 +303,8 @@
     }
     .votes-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
       font-size: 9px;
       background: rgba(15, 23, 42, 0.6);
       padding: 4px 6px;
@@ -711,7 +711,7 @@
 
         <div style="margin-bottom: 2px;">
           <select id="aiModeSelect" class="cyber-select">
-            <option value="tribunal" selected>🏛️ AI Tribunal (RL + LLM + PID + VDB)</option>
+            <option value="tribunal" selected>🏛️ AI Tribunal (RL + LLM + PID)</option>
             <option value="rl">🧠 Self-Learning (Q-Learning RL)</option>
             <option value="ollama">🦙 Ollama Local LLM</option>
             <option value="heuristic">🚀 Algorithmic Guidance</option>
@@ -739,12 +739,11 @@
           <span>CONS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
         </div>
 
-        <!-- Live Council Votes -->
+        <!-- Live Council Votes (3-Agent Tribunal) -->
         <div id="tribunalVotes" class="votes-row">
           <span id="voteRL" class="vote-pill" style="color: #38bdf8;">🧠 RL: --</span>
           <span id="voteLLM" class="vote-pill" style="color: #e2e8f0;">🦙 LLM: --</span>
           <span id="votePID" class="vote-pill" style="color: #38bdf8;">🚀 PID: --</span>
-          <span id="voteVDB" class="vote-pill" style="color: #c084fc;">🌌 RAG: --</span>
         </div>
 
         <!-- Dedicated RL Telemetry Row -->
@@ -870,7 +869,6 @@
     const voteRL = document.getElementById('voteRL');
     const voteLLM = document.getElementById('voteLLM');
     const votePID = document.getElementById('votePID');
-    const voteVDB = document.getElementById('voteVDB');
     const watchdogStatus = document.getElementById('watchdogStatus');
     const supervisorAction = document.getElementById('supervisorAction');
     const ollamaModelSelect = document.getElementById('ollamaModelSelect');
@@ -1070,7 +1068,6 @@
         if (voteRL) voteRL.innerText = '🧠 RL: --';
         if (voteLLM) voteLLM.innerText = '🦙 LLM: --';
         if (votePID) votePID.innerText = '🚀 PID: --';
-        if (voteVDB) voteVDB.innerText = '🌌 RAG: --';
         const rlCurrentAction = document.getElementById('rlCurrentAction');
         if (rlCurrentAction) rlCurrentAction.innerText = 'STANDBY';
       }
@@ -2867,43 +2864,39 @@
         // --- 4. Query Council Member 3: Heuristic PID Flight Computer ---
         const votePIDAction = computeHeuristicAction(rocket, landingPad);
 
-        // --- 5. TRIBUNAL VOTING ARBITRATION ---
-        // Weightings: Heuristic provides stability (weight 1.1), RL provides learned edge (weight 1.0 + wins/30),
-        // Vector DB modulates RL weight and breaks deadlocks.
+        // --- 5. 3-AGENT TRIBUNAL VOTING ARBITRATION ---
+        // The Tribunal consists of exactly 3 agents:
+        //   1. PID Copilot (Algorithmic stability & flight envelope baseline)
+        //   2. RL Pilot (Q-learning agent with learned trajectory policy)
+        //   3. LLM Pilot (Local Ollama LLM augmented with Dual-Tier Vector Memory)
         let thrustVotes = 0;
         let leftVotes = 0;
         let rightVotes = 0;
 
-        // Count PID vote
-        if (votePIDAction.thrust) thrustVotes += 1.1;
-        if (votePIDAction.left) leftVotes += 1.1;
-        if (votePIDAction.right) rightVotes += 1.1;
+        // Agent 1: PID Copilot
+        const pidWeight = 1.05;
+        if (votePIDAction.thrust) thrustVotes += pidWeight;
+        if (votePIDAction.left) leftVotes += pidWeight;
+        if (votePIDAction.right) rightVotes += pidWeight;
 
-        // Count RL vote
-        const rlWeight = Math.min(1.5, 0.9 + (rlAgent.wins * 0.03));
+        // Agent 2: RL Pilot
+        const rlWeight = Math.min(1.4, 1.0 + (rlAgent.wins * 0.02));
         if (voteRLAction.thrust) thrustVotes += rlWeight;
         if (voteRLAction.left) leftVotes += rlWeight;
         if (voteRLAction.right) rightVotes += rlWeight;
 
-        // Count LLM vote (if responsive)
+        // Agent 3: LLM Pilot (if responsive)
+        const llmWeight = voteLLMAction ? 1.0 : 0;
         if (voteLLMAction) {
-          const llmWeight = 0.95;
           if (voteLLMAction.thrust) thrustVotes += llmWeight;
           if (voteLLMAction.left) leftVotes += llmWeight;
           if (voteLLMAction.right) rightVotes += llmWeight;
         }
 
-        // Vector DB RAG Influence
-        if (vdbSuggestion) {
-          if (vdbSuggestion.thrust) thrustVotes += 0.6;
-          if (vdbSuggestion.left) leftVotes += 0.6;
-          if (vdbSuggestion.right) rightVotes += 0.6;
-        }
-
-        const totalCouncil = (voteLLMAction ? 3 : 2) + (vdbSuggestion ? 0.6 : 0);
-        const finalThrust = (thrustVotes / totalCouncil) >= 0.45 && rocket.fuel > 0;
-        const finalLeft = (leftVotes / totalCouncil) >= 0.42 && !((rightVotes / totalCouncil) >= 0.42);
-        const finalRight = (rightVotes / totalCouncil) >= 0.42 && !finalLeft;
+        const totalCouncil = pidWeight + rlWeight + llmWeight;
+        const finalThrust = (thrustVotes / totalCouncil) >= 0.48 && rocket.fuel > 0;
+        const finalLeft = (leftVotes / totalCouncil) >= 0.45 && !((rightVotes / totalCouncil) >= 0.45);
+        const finalRight = (rightVotes / totalCouncil) >= 0.45 && !finalLeft;
 
         keys.thrust = finalThrust;
         keys.left = finalLeft;
@@ -2912,13 +2905,13 @@
         if (keys.thrust) sound.startThrust();
         else sound.stopThrust();
 
-        // Check consensus agreement level
+        // Check consensus agreement level among the 3 agents
         const agreement = Math.max(thrustVotes, totalCouncil - thrustVotes) / totalCouncil;
         tribunalRecentConsensus.push(agreement);
         if (tribunalRecentConsensus.length > 20) tribunalRecentConsensus.shift();
         const avgConsensus = Math.round((tribunalRecentConsensus.reduce((a, b) => a + b, 0) / tribunalRecentConsensus.length) * 100);
 
-        // Update live vote badges and RL telemetry in HUD (throttled to ~10Hz to eliminate jitter & DOM thrashing)
+        // Update live vote badges (3 agents) and RL telemetry in HUD
         if (aiCycleCounter % 6 === 0) {
           const modelIcon = shortModel.startsWith('hermes') ? '🪽' : (shortModel.startsWith('llama') ? '🦙' : (shortModel.startsWith('gemma') ? '💎' : '⚡'));
           const rlTag = formatActionAbbr(voteRLAction.tag);
@@ -2928,7 +2921,6 @@
           if (voteRL) voteRL.innerText = `🧠 ${rlTag}`;
           if (voteLLM) voteLLM.innerText = `${modelIcon} ${llmTag}`;
           if (votePID) votePID.innerText = `🚀 ${pidTag}`;
-          if (voteVDB) voteVDB.innerText = `🌌 ${curWins}W/${pvtWins}W`;
           if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
 
           const rlCurrentAction = document.getElementById('rlCurrentAction');
@@ -2942,8 +2934,8 @@
         }
 
         if (aiCycleCounter % 15 === 0) {
-          const councilStatus = voteLLMAction ? `RL + ${shortModel} + PID + Dual VDB` : "RL + PID + Dual VDB";
-          aiThought.innerText = `⚖️ Tribunal: [${councilStatus}] Consensus: ${avgConsensus}% | Tokens: ${aiTokens}`;
+          const councilStatus = voteLLMAction ? `RL + ${shortModel} + PID` : "RL + PID";
+          aiThought.innerText = `⚖️ 3-Agent Tribunal: [${councilStatus}] Consensus: ${avgConsensus}% | Tokens: ${aiTokens}`;
         }
 
       } else if (mode === 'rl') {
@@ -2984,7 +2976,6 @@
           if (voteRL) voteRL.innerText = `🧠 ${rlTag}`;
           if (voteLLM) voteLLM.innerText = `🦙 OFF`;
           if (votePID) votePID.innerText = `🚀 OFF`;
-          if (voteVDB) voteVDB.innerText = `🌌 OFF`;
 
           const rlCurrentAction = document.getElementById('rlCurrentAction');
           if (rlCurrentAction) rlCurrentAction.innerText = rlTag;
