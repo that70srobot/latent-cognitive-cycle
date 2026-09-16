@@ -742,7 +742,7 @@
       constructor() {
         this.reset();
       }
-      reset(x = width * 0.18, y = height * 0.25) {
+      reset(x = width * 0.25, y = height * 0.35) {
         this.x = x;
         this.y = y;
         this.vx = 0.5;
@@ -797,54 +797,90 @@
       draw(ctx) {
         // 1. Draw Tactical AR Target Reticle around the rocket (in screen space)
         ctx.save();
-        const boxSize = 24;
+        const boxSize = 28;
         ctx.strokeStyle = this.shield < 30 ? '#ef4444' : '#38bdf8';
-        ctx.lineWidth = 1.4;
+        ctx.lineWidth = 1.6;
+
+        // Pulsing radar target beacon circle
+        const beaconPulse = 8 + Math.sin(Date.now() * 0.006) * 4;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, boxSize + beaconPulse, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
         // Reticle corner brackets
         ctx.beginPath();
         // Top-left
-        ctx.moveTo(this.x - boxSize, this.y - boxSize + 6);
+        ctx.moveTo(this.x - boxSize, this.y - boxSize + 7);
         ctx.lineTo(this.x - boxSize, this.y - boxSize);
-        ctx.lineTo(this.x - boxSize + 6, this.y - boxSize);
+        ctx.lineTo(this.x - boxSize + 7, this.y - boxSize);
         // Top-right
-        ctx.moveTo(this.x + boxSize - 6, this.y - boxSize);
+        ctx.moveTo(this.x + boxSize - 7, this.y - boxSize);
         ctx.lineTo(this.x + boxSize, this.y - boxSize);
-        ctx.lineTo(this.x + boxSize, this.y - boxSize + 6);
+        ctx.lineTo(this.x + boxSize, this.y - boxSize + 7);
         // Bottom-left
-        ctx.moveTo(this.x - boxSize, this.y + boxSize - 6);
+        ctx.moveTo(this.x - boxSize, this.y + boxSize - 7);
         ctx.lineTo(this.x - boxSize, this.y + boxSize);
-        ctx.lineTo(this.x - boxSize + 6, this.y + boxSize);
+        ctx.lineTo(this.x - boxSize + 7, this.y + boxSize);
         // Bottom-right
-        ctx.moveTo(this.x + boxSize - 6, this.y + boxSize);
+        ctx.moveTo(this.x + boxSize - 7, this.y + boxSize);
         ctx.lineTo(this.x + boxSize, this.y + boxSize);
-        ctx.lineTo(this.x + boxSize, this.y + boxSize - 6);
+        ctx.lineTo(this.x + boxSize, this.y + boxSize - 7);
+        ctx.strokeStyle = this.shield < 30 ? '#ef4444' : '#38bdf8';
+        ctx.lineWidth = 1.6;
         ctx.stroke();
 
         // Velocity heading vector arrow
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+        ctx.lineWidth = 1.4;
         ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x + this.vx * 14, this.y + this.vy * 14);
+        ctx.lineTo(this.x + this.vx * 16, this.y + this.vy * 16);
         ctx.stroke();
 
         // AR Ship HUD Callout
-        ctx.font = 'bold 9px monospace';
+        ctx.font = 'bold 10px monospace';
         ctx.fillStyle = '#38bdf8';
         ctx.textAlign = 'left';
         const modelLabel = typeof getActiveModelName === 'function' ? getActiveModelName().split(':')[0].toUpperCase() : 'SHIP';
-        ctx.fillText(`🚀 [${modelLabel}]`, this.x + boxSize + 4, this.y - 4);
+        ctx.fillText(`🚀 [${modelLabel}]`, this.x + boxSize + 5, this.y - 4);
         const alt = typeof landingPad !== 'undefined' ? Math.max(0, Math.round(landingPad.y - this.y)) : 0;
         const spd = Math.hypot(this.vx, this.vy).toFixed(1);
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(`ALT: ${alt}m | ${spd} m/s`, this.x + boxSize + 4, this.y + 7);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillText(`ALT: ${alt}m | ${spd} m/s`, this.x + boxSize + 5, this.y + 8);
         ctx.restore();
 
         // 2. Draw Rocket Hull (Oriented in Local Rotational Space)
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI / 2);
+
+        // Attached Engine Exhaust Plume (visible whenever thrusting)
+        if (keys.thrust && this.fuel > 0) {
+          ctx.save();
+          const flameLen = 22 + Math.random() * 14;
+          // Outer fire jet
+          ctx.beginPath();
+          ctx.moveTo(-5, 18);
+          ctx.quadraticCurveTo(0, 18 + flameLen * 1.3, 0, 18 + flameLen);
+          ctx.quadraticCurveTo(0, 18 + flameLen * 1.3, 5, 18);
+          ctx.closePath();
+          ctx.fillStyle = '#f59e0b';
+          ctx.shadowColor = '#ef4444';
+          ctx.shadowBlur = 14;
+          ctx.fill();
+
+          // Inner plasma spear
+          ctx.beginPath();
+          ctx.moveTo(-3, 18);
+          ctx.lineTo(0, 18 + flameLen * 0.6);
+          ctx.lineTo(3, 18);
+          ctx.closePath();
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.restore();
+        }
 
         // Rocket Body Gradient (Sleek titanium hull)
         const hullGrad = ctx.createLinearGradient(0, -22, 0, 16);
@@ -1177,8 +1213,8 @@
       const padY = height - (75 + (currentLevel % 5) * 6);
       landingPad = new LandingPad(padX, padY, padWidth);
 
-      // Rocket spawn location
-      rocket.reset(width * (0.12 + (currentLevel % 3) * 0.05), height * 0.18);
+      // Rocket spawn location (positioned clearly in open airspace below HUD)
+      rocket.reset(width * (0.24 + (currentLevel % 3) * 0.05), height * 0.35);
 
       // Procedural Asteroids count scaling: 0 on Lvl 1, up to 14 on higher levels
       const numAsteroids = Math.min(14, Math.floor((currentLevel - 1) * 0.22));
@@ -1501,6 +1537,14 @@
           drawTrajectoryForecast(ctx);
         }
         rocket.draw(ctx);
+      } else {
+        // Visual indicator while re-launching after crash
+        ctx.save();
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = '#f87171';
+        ctx.textAlign = 'center';
+        ctx.fillText('💥 SHIP RE-LAUNCHING...', rocket.x, Math.min(height - 50, rocket.y));
+        ctx.restore();
       }
 
       // Particles
@@ -1693,13 +1737,16 @@
       }
 
       updateHUDStats() {
-        aiEpisodeDisplay.innerText = this.episodes;
+        if (typeof aiEpisodeDisplay !== 'undefined' && aiEpisodeDisplay) aiEpisodeDisplay.innerText = this.episodes;
         const rate = this.recentHistory.length > 0 
           ? Math.round((this.recentHistory.reduce((a, b) => a + b, 0) / this.recentHistory.length) * 100) 
           : 0;
-        aiSuccessRateDisplay.innerText = `${rate}%`;
-        aiEpsilonDisplay.innerText = this.epsilon.toFixed(2);
-        aiStatesDisplay.innerText = Object.keys(this.qTable).length;
+        const successEl = document.getElementById('aiSuccessRateDisplay');
+        if (successEl) successEl.innerText = `${rate}%`;
+        const epsEl = document.getElementById('aiEpsilonDisplay');
+        if (epsEl) epsEl.innerText = this.epsilon.toFixed(2);
+        const statesEl = document.getElementById('aiStatesDisplay');
+        if (statesEl) statesEl.innerText = Object.keys(this.qTable).length;
       }
 
       saveWeights() {
@@ -1729,6 +1776,8 @@
         } catch (e) {}
       }
     }
+
+    const rlAgent = new QLearningAgent();
 
     // ==========================================
     // 🌌 VECTOR DATABASE (CURATED MASTER + DEDICATED PRIVATE TIERS)
