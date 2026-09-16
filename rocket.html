@@ -186,7 +186,12 @@
 
   <!-- HUD -->
   <div id="hud">
-    <div class="hud-panel">
+    <div class="hud-panel" style="pointer-events: auto;">
+      <!-- Mission Launch & Pause Controls -->
+      <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+        <button id="hudStartBtn" class="btn" style="flex: 1; padding: 6px 12px; font-size: 11px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; box-shadow: 0 0 12px rgba(16,185,129,0.4); text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; cursor: pointer;">▶ START MISSION</button>
+        <button id="hudResetBtn" style="background: rgba(30, 41, 59, 0.85); color: #cbd5e1; border: 1px solid #475569; border-radius: 8px; font-size: 12px; padding: 4px 9px; cursor: pointer;" title="Restart Current Sector">🔄</button>
+      </div>
       <div class="bar-container">
         <span>FUEL:</span>
         <div class="bar-outer"><div id="fuelBar" class="bar-fuel"></div></div>
@@ -285,7 +290,7 @@
       <div style="margin-bottom: 20px; font-size: 12px; color: #64748b;">
         <span>Controls: <strong>↑ / W</strong> Thrust &nbsp;|&nbsp; <strong>← → / A D</strong> Turn &nbsp;|&nbsp; <strong>Touch buttons</strong> on mobile</span>
       </div>
-      <button id="modalBtn" class="btn">LAUNCH MISSION</button>
+      <button id="modalBtn" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.5); font-size: 15px; padding: 14px 32px; font-weight: bold; cursor: pointer;">▶ START MISSION</button>
     </div>
   </div>
 
@@ -324,6 +329,70 @@
     const supervisorAction = document.getElementById('supervisorAction');
     const ollamaModelSelect = document.getElementById('ollamaModelSelect');
     const rotateModelBtn = document.getElementById('rotateModelBtn');
+    const hudStartBtn = document.getElementById('hudStartBtn');
+    const hudResetBtn = document.getElementById('hudResetBtn');
+
+    function updateStartButtonState() {
+      if (!hudStartBtn) return;
+      if (gameState === 'PLAYING') {
+        hudStartBtn.innerHTML = '⏸ PAUSE';
+        hudStartBtn.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+        hudStartBtn.style.borderColor = '#38bdf8';
+        hudStartBtn.style.boxShadow = '0 0 10px rgba(56,189,248,0.3)';
+        hudStartBtn.style.color = '#fff';
+      } else if (gameState === 'PAUSED') {
+        hudStartBtn.innerHTML = '▶ RESUME';
+        hudStartBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        hudStartBtn.style.borderColor = '#fbbf24';
+        hudStartBtn.style.boxShadow = '0 0 14px rgba(245,158,11,0.45)';
+        hudStartBtn.style.color = '#fff';
+      } else if (gameState === 'WON') {
+        hudStartBtn.innerHTML = '▶ NEXT SECTOR';
+        hudStartBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        hudStartBtn.style.borderColor = '#34d399';
+        hudStartBtn.style.boxShadow = '0 0 14px rgba(16,185,129,0.45)';
+        hudStartBtn.style.color = '#fff';
+      } else if (gameState === 'GAMEOVER') {
+        hudStartBtn.innerHTML = '🔄 RETRY';
+        hudStartBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        hudStartBtn.style.borderColor = '#f87171';
+        hudStartBtn.style.boxShadow = '0 0 14px rgba(239,68,68,0.45)';
+        hudStartBtn.style.color = '#fff';
+      } else {
+        // MENU
+        hudStartBtn.innerHTML = '▶ START MISSION';
+        hudStartBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        hudStartBtn.style.borderColor = '#34d399';
+        hudStartBtn.style.boxShadow = '0 0 14px rgba(16,185,129,0.45)';
+        hudStartBtn.style.color = '#fff';
+      }
+    }
+
+    if (hudStartBtn) {
+      hudStartBtn.addEventListener('click', () => {
+        sound.init();
+        if (gameState === 'PLAYING') {
+          gameState = 'PAUSED';
+          if (aiThought) aiThought.innerText = "⏸ Mission Paused. Click Resume to continue.";
+        } else if (gameState === 'PAUSED') {
+          gameState = 'PLAYING';
+          if (aiThought) aiThought.innerText = "▶ Mission Resumed.";
+        } else if (gameState === 'MENU' || gameState === 'GAMEOVER' || gameState === 'WON') {
+          if (modalBtn) modalBtn.click();
+        }
+        updateStartButtonState();
+      });
+    }
+
+    if (hudResetBtn) {
+      hudResetBtn.addEventListener('click', () => {
+        sound.init();
+        if (modal) modal.style.display = 'none';
+        initLevel(currentLevel);
+        gameState = 'PLAYING';
+        updateStartButtonState();
+      });
+    }
 
     // Token Economy (Starting with 2000 tokens)
     let aiTokens = 2000;
@@ -858,6 +927,8 @@
           height * (0.3 + ((f * 17) % 30) * 0.01)
         ));
       }
+
+      if (typeof updateStartButtonState === 'function') updateStartButtonState();
     }
 
     function checkCollisions() {
@@ -961,6 +1032,7 @@
 
       modal.style.display = 'flex';
       gameState = 'WON';
+      if (typeof updateStartButtonState === 'function') updateStartButtonState();
       if (aiAutopilotActive) {
         aiThought.innerText = `🏆 Sector ${currentLevel} Cleared! +50 Tokens awarded. Auto-advancing...`;
         setTimeout(() => {
@@ -1002,6 +1074,7 @@
       };
       modal.style.display = 'flex';
       gameState = 'GAMEOVER';
+      if (typeof updateStartButtonState === 'function') updateStartButtonState();
       if (typeof rlAgent !== 'undefined') {
         rlAgent.recordEpisode(false);
       }
@@ -1030,6 +1103,7 @@
       modal.style.display = 'none';
       initLevel(1);
       gameState = 'PLAYING';
+      if (typeof updateStartButtonState === 'function') updateStartButtonState();
     };
 
     // Main Game Loop
@@ -1073,15 +1147,17 @@
 
       // Rocket & AI Pilot Computation
       if (!rocket.crashed) {
-        if (aiAutopilotActive && gameState === 'PLAYING') {
-          runLLMPilotLogic();
+        if (gameState === 'PLAYING') {
+          if (aiAutopilotActive) {
+            runLLMPilotLogic();
+          }
+          rocket.update(currentGravity);
+          checkCollisions();
         }
-        rocket.update(currentGravity);
         if (aiAutopilotActive) {
           drawTrajectoryForecast(ctx);
         }
         rocket.draw(ctx);
-        if (gameState === 'PLAYING') checkCollisions();
       }
 
       // Particles
@@ -1109,6 +1185,21 @@
       while (angleDeg < -180) angleDeg += 360;
       tiltDisplay.innerText = `${angleDeg}°`;
       tiltDisplay.className = Math.abs(angleDeg) <= 18 ? 'safe' : 'danger';
+
+      // Paused screen banner
+      if (gameState === 'PAUSED') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(3, 6, 17, 0.65)';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 26px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('MISSION PAUSED', width / 2, height / 2 - 12);
+        ctx.font = '13px Orbitron, sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText('Click RESUME to continue flight', width / 2, height / 2 + 18);
+        ctx.restore();
+      }
     }
 
     // ==========================================
