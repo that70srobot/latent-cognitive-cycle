@@ -302,14 +302,41 @@
       padding-top: 4px;
     }
     .votes-row {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 4px;
       font-size: 9px;
       background: rgba(15, 23, 42, 0.6);
-      padding: 3px 6px;
+      padding: 4px 6px;
       border-radius: 4px;
       border: 1px solid rgba(56, 189, 248, 0.15);
+      align-items: center;
+    }
+    .vote-pill {
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      padding: 3px 2px;
+      border-radius: 3px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      display: block;
+      font-weight: 600;
+    }
+    .rl-telemetry-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      font-size: 9px;
+      background: rgba(15, 23, 42, 0.45);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.12);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      color: #94a3b8;
     }
     .watchdog-row {
       display: flex;
@@ -329,9 +356,12 @@
       overflow: hidden;
       text-overflow: ellipsis;
       background: rgba(3, 6, 17, 0.5);
-      padding: 3px 6px;
+      padding: 4px 6px;
       border-radius: 4px;
       border: 1px dashed rgba(56, 189, 248, 0.2);
+      min-height: 24px;
+      line-height: 16px;
+      box-sizing: border-box;
     }
 
     /* Observer Terminal */
@@ -358,10 +388,11 @@
       letter-spacing: 0.05em;
     }
     .observer-log-container {
-      flex: 1;
-      min-height: 120px;
-      max-height: 250px;
+      height: 140px;
+      min-height: 140px;
+      max-height: 140px;
       overflow-y: auto;
+      overscroll-behavior: contain;
       background: rgba(3, 6, 17, 0.8);
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 6px;
@@ -710,10 +741,18 @@
 
         <!-- Live Council Votes -->
         <div id="tribunalVotes" class="votes-row">
-          <span id="voteRL" style="color: #94a3b8;">🧠 RL: --</span>
-          <span id="voteLLM" style="color: #94a3b8;">🦙 LLM: --</span>
-          <span id="votePID" style="color: #94a3b8;">🚀 PID: --</span>
-          <span id="voteVDB" style="color: #c084fc;">🌌 RAG: --</span>
+          <span id="voteRL" class="vote-pill" style="color: #38bdf8;">🧠 RL: --</span>
+          <span id="voteLLM" class="vote-pill" style="color: #e2e8f0;">🦙 LLM: --</span>
+          <span id="votePID" class="vote-pill" style="color: #38bdf8;">🚀 PID: --</span>
+          <span id="voteVDB" class="vote-pill" style="color: #c084fc;">🌌 RAG: --</span>
+        </div>
+
+        <!-- Dedicated RL Telemetry Row -->
+        <div id="rlTelemetryRow" class="rl-telemetry-row">
+          <span>RL: <strong id="rlCurrentAction" style="color: #38bdf8;">COAST</strong></span>
+          <span>Q: <strong id="rlQValue" style="color: #4ade80;">0.00</strong></span>
+          <span>EPS: <strong id="aiEpsilonDisplay" style="color: #f59e0b;">0.65</strong></span>
+          <span>Q-DIM: <strong id="aiStatesDisplay" style="color: #c084fc;">0</strong></span>
         </div>
 
         <!-- Watchdog & Supervisor Status -->
@@ -729,7 +768,7 @@
       </div>
 
       <!-- BOX 3: OBSERVER BOT COMMS TERMINAL -->
-      <div class="data-box" id="boxObserverComms" style="flex: 1; display: flex; flex-direction: column; min-height: 180px;">
+      <div class="data-box" id="boxObserverComms" style="display: flex; flex-direction: column;">
         <div class="data-box-header">
           <span class="box-title">
             <span class="pulse-dot"></span>
@@ -871,7 +910,7 @@
         }
         observerLog.scrollTop = observerLog.scrollHeight;
       }
-      if (aiThought) {
+      if (aiThought && !aiAutopilotActive) {
         aiThought.innerText = `${tagIcon} ${msg}`;
       }
     }
@@ -1028,6 +1067,12 @@
         keys.left = false;
         keys.right = false;
         sound.stopThrust();
+        if (voteRL) voteRL.innerText = '🧠 RL: --';
+        if (voteLLM) voteLLM.innerText = '🦙 LLM: --';
+        if (votePID) votePID.innerText = '🚀 PID: --';
+        if (voteVDB) voteVDB.innerText = '🌌 RAG: --';
+        const rlCurrentAction = document.getElementById('rlCurrentAction');
+        if (rlCurrentAction) rlCurrentAction.innerText = 'STANDBY';
       }
     });
 
@@ -1128,28 +1173,28 @@
       }
       startThrust() {
         this.init();
-        if (this.thrustOsc) return;
+        if (!this.ctx) return;
         try {
-          this.thrustOsc = this.ctx.createOscillator();
-          this.thrustGain = this.ctx.createGain();
-          this.thrustOsc.type = 'sawtooth';
-          this.thrustOsc.frequency.setValueAtTime(65, this.ctx.currentTime);
-          this.thrustGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
-          this.thrustOsc.connect(this.thrustGain);
-          this.thrustGain.connect(this.ctx.destination);
-          this.thrustOsc.start();
+          if (!this.thrustOsc) {
+            this.thrustOsc = this.ctx.createOscillator();
+            this.thrustGain = this.ctx.createGain();
+            this.thrustOsc.type = 'sawtooth';
+            this.thrustOsc.frequency.setValueAtTime(65, this.ctx.currentTime);
+            this.thrustGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+            this.thrustOsc.connect(this.thrustGain);
+            this.thrustGain.connect(this.ctx.destination);
+            this.thrustOsc.start();
+          }
+          this.thrustGain.gain.cancelScheduledValues(this.ctx.currentTime);
+          this.thrustGain.gain.setTargetAtTime(0.04, this.ctx.currentTime, 0.03);
         } catch(e) {}
       }
       stopThrust() {
         if (this.thrustGain && this.ctx) {
-          this.thrustGain.gain.setTargetAtTime(0.001, this.ctx.currentTime, 0.05);
-          setTimeout(() => {
-            if (this.thrustOsc) {
-              try { this.thrustOsc.stop(); this.thrustOsc.disconnect(); } catch(e) {}
-              this.thrustOsc = null;
-              this.thrustGain = null;
-            }
-          }, 80);
+          try {
+            this.thrustGain.gain.cancelScheduledValues(this.ctx.currentTime);
+            this.thrustGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.05);
+          } catch(e) {}
         }
       }
       playChime() {
@@ -2231,7 +2276,7 @@
         if (Math.random() < this.epsilon) {
           // Exploration: pick random action
           const idx = Math.floor(Math.random() * this.actions.length);
-          return { action: this.actions[idx], index: idx, explored: true };
+          return { action: this.actions[idx], index: idx, explored: true, qValue: qVals[idx] || 0 };
         } else {
           // Exploitation: pick highest learned Q-value
           let maxQ = -Infinity;
@@ -2509,6 +2554,22 @@
       }
     }
 
+    // Action abbreviation helper for stable, jitter-free UI telemetry
+    function formatActionAbbr(name) {
+      if (!name) return '--';
+      switch(name) {
+        case 'THRUST_LEFT': return 'T+LFT';
+        case 'THRUST_RIGHT': return 'T+RGT';
+        case 'ROTATE_LEFT':
+        case 'LEFT': return 'LFT';
+        case 'ROTATE_RIGHT':
+        case 'RIGHT': return 'RGT';
+        case 'THRUST': return 'THR';
+        case 'COAST': return 'CST';
+        default: return name;
+      }
+    }
+
     // Heuristic PID Flight Computer Helper
     function computeHeuristicAction(r, pad) {
       const padCenterX = pad.x + pad.width / 2;
@@ -2674,14 +2735,28 @@
         if (tribunalRecentConsensus.length > 20) tribunalRecentConsensus.shift();
         const avgConsensus = Math.round((tribunalRecentConsensus.reduce((a, b) => a + b, 0) / tribunalRecentConsensus.length) * 100);
 
-        // Update live vote badges in HUD
-        const modelIcon = shortModel.startsWith('hermes') ? '🪽' : (shortModel.startsWith('llama') ? '🦙' : (shortModel.startsWith('gemma') ? '💎' : '⚡'));
-        if (voteRL) voteRL.innerText = `🧠 RL: ${voteRLAction.tag}`;
-        if (voteLLM) voteLLM.innerText = `${modelIcon} ${shortModel}: ${voteLLMAction ? voteLLMAction.tag : '...'}`;
-        if (votePID) votePID.innerText = `🚀 PID: ${votePIDAction.tag}`;
-        if (voteVDB) voteVDB.innerText = `🌌 RAG: C[${curWins}W] P[${pvtWins}W]`;
-        if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
-        updateVectorHUDDisplays();
+        // Update live vote badges and RL telemetry in HUD (throttled to ~10Hz to eliminate jitter & DOM thrashing)
+        if (aiCycleCounter % 6 === 0) {
+          const modelIcon = shortModel.startsWith('hermes') ? '🪽' : (shortModel.startsWith('llama') ? '🦙' : (shortModel.startsWith('gemma') ? '💎' : '⚡'));
+          const rlTag = formatActionAbbr(voteRLAction.tag);
+          const llmTag = formatActionAbbr(voteLLMAction ? voteLLMAction.tag : '...');
+          const pidTag = formatActionAbbr(votePIDAction.tag);
+
+          if (voteRL) voteRL.innerText = `🧠 ${rlTag}`;
+          if (voteLLM) voteLLM.innerText = `${modelIcon} ${llmTag}`;
+          if (votePID) votePID.innerText = `🚀 ${pidTag}`;
+          if (voteVDB) voteVDB.innerText = `🌌 ${curWins}W/${pvtWins}W`;
+          if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
+
+          const rlCurrentAction = document.getElementById('rlCurrentAction');
+          if (rlCurrentAction) rlCurrentAction.innerText = rlTag;
+          const rlQVal = document.getElementById('rlQValue');
+          if (rlQVal) rlQVal.innerText = (rlChoice.qValue !== undefined ? rlChoice.qValue : 0).toFixed(2);
+          const rlEps = document.getElementById('aiEpsilonDisplay');
+          if (rlEps) rlEps.innerText = rlAgent.epsilon.toFixed(2);
+          const rlStates = document.getElementById('aiStatesDisplay');
+          if (rlStates) rlStates.innerText = Object.keys(rlAgent.qTable).length;
+        }
 
         if (aiCycleCounter % 15 === 0) {
           const councilStatus = voteLLMAction ? `RL + ${shortModel} + PID + Dual VDB` : "RL + PID + Dual VDB";
@@ -2711,6 +2786,23 @@
         rlAgent.prevState = state;
         rlAgent.prevActionIdx = choice.index;
         rlAgent.prevDistToPad = currentDist;
+
+        if (aiCycleCounter % 6 === 0) {
+          const rlTag = formatActionAbbr(choice.action.name);
+          if (voteRL) voteRL.innerText = `🧠 ${rlTag}`;
+          if (voteLLM) voteLLM.innerText = `🦙 OFF`;
+          if (votePID) votePID.innerText = `🚀 OFF`;
+          if (voteVDB) voteVDB.innerText = `🌌 OFF`;
+
+          const rlCurrentAction = document.getElementById('rlCurrentAction');
+          if (rlCurrentAction) rlCurrentAction.innerText = rlTag;
+          const rlQVal = document.getElementById('rlQValue');
+          if (rlQVal) rlQVal.innerText = (choice.qValue !== undefined ? choice.qValue : 0).toFixed(2);
+          const rlEps = document.getElementById('aiEpsilonDisplay');
+          if (rlEps) rlEps.innerText = rlAgent.epsilon.toFixed(2);
+          const rlStates = document.getElementById('aiStatesDisplay');
+          if (rlStates) rlStates.innerText = Object.keys(rlAgent.qTable).length;
+        }
 
         if (aiCycleCounter % 15 === 0) {
           const typeStr = choice.explored ? '🎲 Explored' : '🧠 Exploit (Q)';
