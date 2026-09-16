@@ -194,10 +194,11 @@
       <div class="hud-metric" style="margin-top: 6px;">LEVEL: <span id="levelDisplay" style="color: #38bdf8;">1 / 4</span></div>
     </div>
 
-    <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 290px; pointer-events: auto;">
+    <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 320px; pointer-events: auto;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
-        <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">🤖 AI PILOT</span>
+        <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">⚖️ AI TRIBUNAL</span>
         <select id="aiModeSelect" style="background: #0f172a; color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-size: 11px; padding: 2px 6px; outline: none;">
+          <option value="tribunal" selected>🏛️ AI Tribunal (All 3 + Vector DB)</option>
           <option value="rl">🧠 Self-Learning (Q-Learning RL)</option>
           <option value="ollama">🦙 Ollama Local LLM</option>
           <option value="heuristic">🚀 Algorithmic Guidance</option>
@@ -208,16 +209,24 @@
         </label>
       </div>
 
-      <!-- Self-Learning Learning Telemetry -->
+      <!-- Tribunal Voting & Vector Memory Stats -->
       <div id="aiLearningStats" style="display: flex; justify-content: space-around; font-size: 10px; color: #94a3b8; margin-bottom: 4px; border-top: 1px solid rgba(56, 189, 248, 0.2); padding-top: 4px;">
-        <span>EPISODE: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
-        <span>SUCCESS: <strong id="aiSuccessRateDisplay" style="color: #4ade80;">0%</strong></span>
-        <span>EPSILON: <strong id="aiEpsilonDisplay" style="color: #f59e0b;">1.00</strong></span>
-        <span>Q-STATES: <strong id="aiStatesDisplay" style="color: #c084fc;">0</strong></span>
+        <span>EP: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
+        <span>WIN: <strong id="aiSuccessRateDisplay" style="color: #4ade80;">0%</strong></span>
+        <span>VECTORS: <strong id="aiVectorsDisplay" style="color: #a855f7;">0</strong></span>
+        <span>CONSENSUS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
       </div>
 
-      <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 290px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        Mode: Human Pilot. Toggle ON for AI Pilot.
+      <!-- Live Council Votes -->
+      <div id="tribunalVotes" style="display: flex; justify-content: space-between; gap: 4px; font-size: 9px; margin-bottom: 4px; background: rgba(15, 23, 42, 0.6); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.15);">
+        <span id="voteRL" style="color: #94a3b8;">🧠 RL: --</span>
+        <span id="voteLLM" style="color: #94a3b8;">🦙 LLM: --</span>
+        <span id="votePID" style="color: #94a3b8;">🚀 PID: --</span>
+        <span id="voteVDB" style="color: #c084fc;">🌌 RAG: --</span>
+      </div>
+
+      <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        Mode: Human Pilot. Toggle ON for AI Tribunal & Vector Brain.
       </div>
     </div>
 
@@ -274,8 +283,12 @@
     const aiModeSelect = document.getElementById('aiModeSelect');
     const aiEpisodeDisplay = document.getElementById('aiEpisodeDisplay');
     const aiSuccessRateDisplay = document.getElementById('aiSuccessRateDisplay');
-    const aiEpsilonDisplay = document.getElementById('aiEpsilonDisplay');
-    const aiStatesDisplay = document.getElementById('aiStatesDisplay');
+    const aiVectorsDisplay = document.getElementById('aiVectorsDisplay');
+    const aiConsensusDisplay = document.getElementById('aiConsensusDisplay');
+    const voteRL = document.getElementById('voteRL');
+    const voteLLM = document.getElementById('voteLLM');
+    const votePID = document.getElementById('votePID');
+    const voteVDB = document.getElementById('voteVDB');
 
     let aiAutopilotActive = false;
     let aiCycleCounter = 0;
@@ -306,7 +319,9 @@
     function updateAiStatusText() {
       if (!aiAutopilotActive) return;
       const mode = aiModeSelect.value;
-      if (mode === 'rl') {
+      if (mode === 'tribunal') {
+        aiThought.innerText = `⚖️ Tribunal Active: RL Agent + Ollama LLM + PID Guidance with Shared Vector Memory`;
+      } else if (mode === 'rl') {
         aiThought.innerText = `🧠 Q-Learning Pilot Active: Ep #${rlAgent.episodes} | Explr: ${(rlAgent.epsilon * 100).toFixed(0)}%`;
       } else if (mode === 'ollama') {
         aiThought.innerText = `🦙 Ollama Local LLM Pilot: Querying llama3.1 on port 11434...`;
@@ -841,6 +856,10 @@
       if (typeof rlAgent !== 'undefined') {
         rlAgent.recordEpisode(true);
       }
+      if (typeof vectorDB !== 'undefined') {
+        const emb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
+        vectorDB.insertMemory(emb, 'WIN', { thrust: true, left: keys.left, right: keys.right }, `Touchdown Lvl ${currentLevel}`);
+      }
       modal.style.display = 'flex';
       gameState = 'WON';
       if (aiAutopilotActive) {
@@ -883,6 +902,10 @@
       gameState = 'GAMEOVER';
       if (typeof rlAgent !== 'undefined') {
         rlAgent.recordEpisode(false);
+      }
+      if (typeof vectorDB !== 'undefined') {
+        const emb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
+        vectorDB.insertMemory(emb, 'CRASH', { thrust: keys.thrust, left: keys.left, right: keys.right }, reason);
       }
       if (aiAutopilotActive) {
         aiThought.innerText = `💥 Crash detected. Re-evaluating flight vectors and retrying...`;
@@ -1165,7 +1188,102 @@
       }
     }
 
-    const rlAgent = new QLearningAgent();
+    // ==========================================
+    // 🌌 VECTOR DATABASE (KNN EMBEDDING MEMORY)
+    // ==========================================
+    class VectorDBEngine {
+      constructor() {
+        this.vectors = []; // Array of { id, embedding: number[6], outcome: 'WIN'|'CRASH', action, note }
+        this.maxEntries = 350;
+        this.loadVectors();
+      }
+
+      // Feature Vector: [norm_dx, norm_dy, norm_vx, norm_vy, norm_tilt, threat]
+      computeEmbedding(r, pad, asts) {
+        const dx = (pad.x + pad.width / 2) - r.x;
+        const dy = pad.y - r.y;
+        let angleDiff = r.angle - (-Math.PI / 2);
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        let threat = 0;
+        for (const a of asts) {
+          if (Math.hypot(a.x - r.x, a.y - r.y) < 110) {
+            threat = 1.0;
+            break;
+          }
+        }
+
+        // L2 normalized feature vector
+        const raw = [
+          Math.max(-1, Math.min(1, dx / 300)),
+          Math.max(-1, Math.min(1, dy / 300)),
+          Math.max(-1, Math.min(1, r.vx / 3.0)),
+          Math.max(-1, Math.min(1, r.vy / 3.0)),
+          Math.max(-1, Math.min(1, angleDiff / 0.8)),
+          threat
+        ];
+
+        const mag = Math.sqrt(raw.reduce((acc, v) => acc + v * v, 0)) || 1;
+        return raw.map(v => v / mag);
+      }
+
+      cosineSimilarity(a, b) {
+        let dot = 0;
+        for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+        return dot;
+      }
+
+      // Query top-K nearest neighbors
+      queryNearest(queryVec, k = 5) {
+        if (this.vectors.length === 0) return [];
+        const scored = this.vectors.map(entry => ({
+          entry,
+          similarity: this.cosineSimilarity(queryVec, entry.embedding)
+        }));
+        scored.sort((a, b) => b.similarity - a.similarity);
+        return scored.slice(0, k);
+      }
+
+      insertMemory(embedding, outcome, action, note = '') {
+        this.vectors.push({
+          id: Date.now() + Math.random(),
+          embedding,
+          outcome,
+          action,
+          note
+        });
+        if (this.vectors.length > this.maxEntries) {
+          this.vectors.shift();
+        }
+        this.saveVectors();
+        if (typeof aiVectorsDisplay !== 'undefined' && aiVectorsDisplay) {
+          aiVectorsDisplay.innerText = this.vectors.length;
+        }
+      }
+
+      saveVectors() {
+        try {
+          localStorage.setItem('cosmic_vector_db', JSON.stringify(this.vectors.slice(-150)));
+        } catch (e) {}
+      }
+
+      loadVectors() {
+        try {
+          const raw = localStorage.getItem('cosmic_vector_db');
+          if (raw) {
+            this.vectors = JSON.parse(raw);
+            setTimeout(() => {
+              if (typeof aiVectorsDisplay !== 'undefined' && aiVectorsDisplay) {
+                aiVectorsDisplay.innerText = this.vectors.length;
+              }
+            }, 100);
+          }
+        } catch (e) {}
+      }
+    }
+
+    const vectorDB = new VectorDBEngine();
 
     // ==========================================
     // 🦙 OLLAMA REAL-TIME LOCAL LLM CONNECTOR
@@ -1174,9 +1292,8 @@
     let lastOllamaDecision = null;
     let lastOllamaTime = 0;
 
-    async function queryOllamaPilot(r, pad, asts) {
+    async function queryOllamaPilot(r, pad, asts, ragContext = '') {
       if (ollamaPending) return;
-      // Query every 650ms for low latency
       if (Date.now() - lastOllamaTime < 650) return;
 
       ollamaPending = true;
@@ -1187,7 +1304,7 @@
       const vy = Number(r.vy.toFixed(1));
       const vx = Number(r.vx.toFixed(1));
 
-      const prompt = `Rocket state: dy_to_pad=${dy}px, dx_to_pad=${dx}px, vy=${vy}m/s, vx=${vx}m/s. Landing pad requires vy<=2.0 and vx<=1.0. Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
+      const prompt = `Rocket state: dy_to_pad=${dy}px, dx_to_pad=${dx}px, vy=${vy}m/s, vx=${vx}m/s. ${ragContext} Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
 
       try {
         const res = await fetch('http://localhost:11434/api/generate', {
@@ -1206,45 +1323,196 @@
           const data = await res.json();
           const parsed = JSON.parse(data.response);
           lastOllamaDecision = parsed;
-          aiThought.innerText = `🦙 Ollama: "${parsed.reason || 'adjusting telemetry'}"`;
+          if (aiModeSelect.value === 'ollama') {
+            aiThought.innerText = `🦙 Ollama: "${parsed.reason || 'adjusting telemetry'}"`;
+          }
         } else {
-          aiThought.innerText = `⚠️ Ollama HTTP ${res.status}: Check port 11434`;
+          if (aiModeSelect.value === 'ollama') {
+            aiThought.innerText = `⚠️ Ollama HTTP ${res.status}: Check port 11434`;
+          }
         }
       } catch (err) {
-        aiThought.innerText = `⚠️ Ollama connection offline. Run 'ollama serve'`;
+        if (aiModeSelect.value === 'ollama') {
+          aiThought.innerText = `⚠️ Ollama connection offline. Run 'ollama serve'`;
+        }
       } finally {
         ollamaPending = false;
       }
     }
 
+    // Heuristic PID Flight Computer Helper
+    function computeHeuristicAction(r, pad) {
+      const padCenterX = pad.x + pad.width / 2;
+      const padTopY = pad.y;
+      const dxToPad = padCenterX - r.x;
+      const dyToPad = padTopY - r.y;
+
+      let targetVx = Math.sign(dxToPad) * Math.min(2.8, Math.abs(dxToPad) * 0.015);
+      if (Math.abs(dxToPad) < 30) targetVx = Math.sign(dxToPad) * 0.4;
+      const vxDiff = targetVx - r.vx;
+
+      let targetAngleOffset = Math.max(-0.45, Math.min(0.45, vxDiff * 0.35));
+      let desiredAngle = -Math.PI / 2 + targetAngleOffset;
+
+      let currentAngle = r.angle;
+      let angleDiff = desiredAngle - currentAngle;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+      const right = angleDiff > 0.08;
+      const left = angleDiff < -0.08;
+
+      let safeVy = dyToPad > 250 ? 2.8 : (dyToPad > 120 ? 1.8 : 1.0);
+      let fireThrust = (r.vy > safeVy) || (dyToPad < 40 && Math.abs(dxToPad) > 60 && r.vy > 0);
+
+      return {
+        thrust: fireThrust && r.fuel > 0,
+        left,
+        right,
+        tag: fireThrust ? (left ? 'T+L' : (right ? 'T+R' : 'THRUST')) : (left ? 'LEFT' : (right ? 'RIGHT' : 'COAST'))
+      };
+    }
+
     // ==========================================
-    // 🕹️ MAIN AI COPILOT ARBITER
+    // ⚖️ TRIBUNAL ARBITER & SHARED VECTOR REASONING
     // ==========================================
+    let tribunalRecentConsensus = [];
+
     function runLLMPilotLogic() {
       aiCycleCounter++;
       const mode = aiModeSelect.value;
+      const currentEmb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
 
-      if (mode === 'rl') {
-        // --- Self-Learning Q-Learning Reinforcement Learning Mode ---
+      if (mode === 'tribunal') {
+        // --- 1. RAG Vector Memory Retrieval ---
+        const nearestNeighbors = vectorDB.queryNearest(currentEmb, 4);
+        let vdbSuggestion = null;
+        let vdbOutcomeBias = 0; // + for win memories, - for crash
+
+        if (nearestNeighbors.length > 0) {
+          const wins = nearestNeighbors.filter(n => n.entry.outcome === 'WIN');
+          const crashes = nearestNeighbors.filter(n => n.entry.outcome === 'CRASH');
+          vdbOutcomeBias = (wins.length - crashes.length) / nearestNeighbors.length;
+
+          if (wins.length > 0) {
+            // Adopt successful pattern from nearest winning vector
+            vdbSuggestion = wins[0].entry.action;
+          }
+        }
+
+        // --- 2. Query/Evaluate Council Member 1: Reinforcement Learning (Q-Learning) ---
+        const padCenterX = landingPad.x + landingPad.width / 2;
+        const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
+        const qState = rlAgent.discretize(rocket, landingPad, asteroids);
+
+        let stepReward = 0;
+        if (rlAgent.prevDistToPad !== null) stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
+        if (rocket.y > height - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
+        if (rocket.fuel <= 0) stepReward -= 5;
+        rlAgent.stepUpdate(qState, stepReward);
+
+        const rlChoice = rlAgent.selectAction(qState);
+        const voteRLAction = {
+          thrust: rlChoice.action.thrust && rocket.fuel > 0,
+          left: rlChoice.action.left,
+          right: rlChoice.action.right,
+          tag: rlChoice.action.name
+        };
+
+        rlAgent.prevState = qState;
+        rlAgent.prevActionIdx = rlChoice.index;
+        rlAgent.prevDistToPad = currentDist;
+
+        // --- 3. Query Council Member 2: Ollama Local LLM (with RAG context injected) ---
+        const ragContext = nearestNeighbors.length > 0 
+          ? `Vector memory matches: ${nearestNeighbors.map(n => `${n.entry.outcome} sim=${n.similarity.toFixed(2)}`).join(', ')}.` 
+          : '';
+        queryOllamaPilot(rocket, landingPad, asteroids, ragContext);
+
+        const voteLLMAction = lastOllamaDecision ? {
+          thrust: Boolean(lastOllamaDecision.thrust && rocket.fuel > 0),
+          left: lastOllamaDecision.turn === 'left',
+          right: lastOllamaDecision.turn === 'right',
+          tag: lastOllamaDecision.thrust ? `T+${lastOllamaDecision.turn||'N'}` : (lastOllamaDecision.turn || 'COAST').toUpperCase()
+        } : null;
+
+        // --- 4. Query Council Member 3: Heuristic PID Flight Computer ---
+        const votePIDAction = computeHeuristicAction(rocket, landingPad);
+
+        // --- 5. TRIBUNAL VOTING ARBITRATION ---
+        // Weightings: Heuristic provides stability (weight 1.1), RL provides learned edge (weight 1.0 + wins/30),
+        // Vector DB modulates RL weight and breaks deadlocks.
+        let thrustVotes = 0;
+        let leftVotes = 0;
+        let rightVotes = 0;
+
+        // Count PID vote
+        if (votePIDAction.thrust) thrustVotes += 1.1;
+        if (votePIDAction.left) leftVotes += 1.1;
+        if (votePIDAction.right) rightVotes += 1.1;
+
+        // Count RL vote
+        const rlWeight = Math.min(1.5, 0.9 + (rlAgent.wins * 0.03));
+        if (voteRLAction.thrust) thrustVotes += rlWeight;
+        if (voteRLAction.left) leftVotes += rlWeight;
+        if (voteRLAction.right) rightVotes += rlWeight;
+
+        // Count LLM vote (if responsive)
+        if (voteLLMAction) {
+          const llmWeight = 0.95;
+          if (voteLLMAction.thrust) thrustVotes += llmWeight;
+          if (voteLLMAction.left) leftVotes += llmWeight;
+          if (voteLLMAction.right) rightVotes += llmWeight;
+        }
+
+        // Vector DB RAG Influence
+        if (vdbSuggestion) {
+          if (vdbSuggestion.thrust) thrustVotes += 0.6;
+          if (vdbSuggestion.left) leftVotes += 0.6;
+          if (vdbSuggestion.right) rightVotes += 0.6;
+        }
+
+        const totalCouncil = (voteLLMAction ? 3 : 2) + (vdbSuggestion ? 0.6 : 0);
+        const finalThrust = (thrustVotes / totalCouncil) >= 0.45 && rocket.fuel > 0;
+        const finalLeft = (leftVotes / totalCouncil) >= 0.42 && !((rightVotes / totalCouncil) >= 0.42);
+        const finalRight = (rightVotes / totalCouncil) >= 0.42 && !finalLeft;
+
+        keys.thrust = finalThrust;
+        keys.left = finalLeft;
+        keys.right = finalRight;
+
+        if (keys.thrust) sound.startThrust();
+        else sound.stopThrust();
+
+        // Check consensus agreement level
+        const agreement = Math.max(thrustVotes, totalCouncil - thrustVotes) / totalCouncil;
+        tribunalRecentConsensus.push(agreement);
+        if (tribunalRecentConsensus.length > 20) tribunalRecentConsensus.shift();
+        const avgConsensus = Math.round((tribunalRecentConsensus.reduce((a, b) => a + b, 0) / tribunalRecentConsensus.length) * 100);
+
+        // Update live vote badges in HUD
+        if (voteRL) voteRL.innerText = `🧠 RL: ${voteRLAction.tag}`;
+        if (voteLLM) voteLLM.innerText = `🦙 LLM: ${voteLLMAction ? voteLLMAction.tag : 'WAIT'}`;
+        if (votePID) votePID.innerText = `🚀 PID: ${votePIDAction.tag}`;
+        if (voteVDB) voteVDB.innerText = `🌌 V-Mem: ${vdbSuggestion ? (vdbOutcomeBias > 0 ? '✓' : '!') : '∅'}`;
+        if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
+        if (aiVectorsDisplay) aiVectorsDisplay.innerText = vectorDB.vectors.length;
+
+        if (aiCycleCounter % 15 === 0) {
+          const councilStatus = voteLLMAction ? "Full 3-Agent Council" : "RL + PID + Vector DB";
+          aiThought.innerText = `⚖️ Tribunal: [${councilStatus}] Consensus: ${avgConsensus}% | Vectors: ${vectorDB.vectors.length}`;
+        }
+
+      } else if (mode === 'rl') {
+        // Standalone RL Mode
         const padCenterX = landingPad.x + landingPad.width / 2;
         const currentDist = Math.hypot(padCenterX - rocket.x, landingPad.y - rocket.y);
         const state = rlAgent.discretize(rocket, landingPad, asteroids);
 
-        // Immediate reward shaping:
-        // + reward for reducing distance to pad
-        // - penalty for falling too fast (vy > 2.2)
-        // - penalty for severe tilt near ground
         let stepReward = 0;
-        if (rlAgent.prevDistToPad !== null) {
-          stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
-        }
-        if (rocket.y > height - 120 && rocket.vy > 2.2) {
-          stepReward -= (rocket.vy - 2.2) * 1.5;
-        }
-        if (rocket.fuel <= 0) {
-          stepReward -= 5;
-        }
-
+        if (rlAgent.prevDistToPad !== null) stepReward += (rlAgent.prevDistToPad - currentDist) * 0.12;
+        if (rocket.y > height - 120 && rocket.vy > 2.2) stepReward -= (rocket.vy - 2.2) * 1.5;
+        if (rocket.fuel <= 0) stepReward -= 5;
         rlAgent.stepUpdate(state, stepReward);
 
         const choice = rlAgent.selectAction(state);
@@ -1266,7 +1534,7 @@
         }
 
       } else if (mode === 'ollama') {
-        // --- Local Ollama LLM Mode ---
+        // Standalone Ollama Mode
         queryOllamaPilot(rocket, landingPad, asteroids);
         if (lastOllamaDecision) {
           keys.thrust = lastOllamaDecision.thrust && rocket.fuel > 0;
@@ -1277,40 +1545,16 @@
         }
 
       } else {
-        // --- Algorithmic Guidance (Heuristic baseline) ---
-        const padCenterX = landingPad.x + landingPad.width / 2;
-        const padTopY = landingPad.y;
-        const dxToPad = padCenterX - rocket.x;
-        const dyToPad = padTopY - rocket.y;
-
-        let targetVx = Math.sign(dxToPad) * Math.min(2.8, Math.abs(dxToPad) * 0.015);
-        if (Math.abs(dxToPad) < 30) targetVx = Math.sign(dxToPad) * 0.4;
-        const vxDiff = targetVx - rocket.vx;
-
-        let targetAngleOffset = Math.max(-0.45, Math.min(0.45, vxDiff * 0.35));
-        let desiredAngle = -Math.PI / 2 + targetAngleOffset;
-
-        let currentAngle = rocket.angle;
-        let angleDiff = desiredAngle - currentAngle;
-        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-        keys.right = angleDiff > 0.08;
-        keys.left = angleDiff < -0.08;
-
-        let safeVy = dyToPad > 250 ? 2.8 : (dyToPad > 120 ? 1.8 : 1.0);
-        let fireThrust = (rocket.vy > safeVy) || (dyToPad < 40 && Math.abs(dxToPad) > 60 && rocket.vy > 0);
-
-        if (fireThrust && rocket.fuel > 0) {
-          keys.thrust = true;
-          sound.startThrust();
-        } else {
-          keys.thrust = false;
-          sound.stopThrust();
-        }
+        // Standalone Heuristic Mode
+        const action = computeHeuristicAction(rocket, landingPad);
+        keys.thrust = action.thrust;
+        keys.left = action.left;
+        keys.right = action.right;
+        if (keys.thrust) sound.startThrust();
+        else sound.stopThrust();
 
         if (aiCycleCounter % 20 === 0) {
-          aiThought.innerText = `🚀 Heuristic: Aligning Pad (${Math.round(dxToPad)}px) | V=${rocket.vy.toFixed(1)} m/s`;
+          aiThought.innerText = `🚀 Heuristic Guidance Active | Vy=${rocket.vy.toFixed(1)} m/s`;
         }
       }
     }
