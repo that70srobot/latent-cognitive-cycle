@@ -822,6 +822,98 @@
       box-shadow: 0 6px 25px rgba(56, 189, 248, 0.5);
     }
 
+    /* 15-Second Victory Points Card & Debriefing Styles */
+    .points-card-debrief {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .points-header-badge {
+      font-size: 11px;
+      font-weight: bold;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 6px;
+      padding: 5px 10px;
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
+    .points-grid {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .points-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .p-label {
+      color: #94a3b8;
+    }
+    .p-val {
+      font-weight: bold;
+    }
+    .points-divider {
+      height: 1px;
+      background: rgba(56, 189, 248, 0.2);
+      margin: 2px 0;
+    }
+    .points-highlight {
+      background: rgba(251, 191, 36, 0.10);
+      border-radius: 4px;
+      padding: 3px 6px;
+      margin: 0 -6px;
+    }
+    .points-station-badge {
+      background: rgba(30, 41, 59, 0.88);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #e2e8f0;
+      line-height: 1.4;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .points-timer-box {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .points-timer-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .points-timer-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #38bdf8);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+      transition: width 0.1s linear;
+      border-radius: 999px;
+    }
+    .points-timer-text {
+      font-size: 11px;
+      color: #38bdf8;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 0.03em;
+    }
+
     /* Mobile On-Screen Controls */
     #mobileControls {
       position: absolute;
@@ -3267,7 +3359,23 @@
       return 0.015 + (progress * 0.055);
     }
 
+    // 15-Second Victory Points Card & Debriefing Timer Engine
+    let victoryTimerInterval = null;
+    let victoryTimerTimeout = null;
+
+    function clearVictoryTimer() {
+      if (victoryTimerInterval) {
+        clearInterval(victoryTimerInterval);
+        victoryTimerInterval = null;
+      }
+      if (victoryTimerTimeout) {
+        clearTimeout(victoryTimerTimeout);
+        victoryTimerTimeout = null;
+      }
+    }
+
     function initLevel(lvl) {
+      clearVictoryTimer();
       currentLevel = Math.max(1, Math.min(MAX_LEVELS, lvl));
       currentGravity = calculateGravity(currentLevel);
       missionTimeLimit = Math.max(30.0, 55.0 - (currentLevel - 1) * 0.25);
@@ -3432,6 +3540,7 @@
     }
 
     function landSuccess() {
+      clearVictoryTimer();
       rocket.landed = true;
       rocket.vx = 0;
       rocket.vy = 0;
@@ -3460,36 +3569,95 @@
         }
       }
       const stationExpansion = (typeof lunarStationSystem !== 'undefined') ? lunarStationSystem.addModule(pilotKey) : null;
-      const stationHtml = stationExpansion 
-        ? `<br>🏗️ Space Station Expanded: <strong style="color:${stationExpansion.botConfig.themeColor};">${stationExpansion.botConfig.icon} ${stationExpansion.botConfig.shortName}</strong> commissioned <strong>${stationExpansion.module.name}</strong> (${stationExpansion.module.type})!<br><span style="color:#94a3b8; font-size:10px;">Total Outpost Modules: ${stationExpansion.totalCount}</span>` 
-        : '';
 
-      const timeBonusHtml = speedrunBonus > 0 
-        ? `<br>Speedrun Bonus: <strong style="color:#38bdf8;">+${speedrunBonus} pts</strong> (${missionTimeRemaining.toFixed(1)}s remaining)`
-        : `<br><span style="color:#f59e0b;">(Overtime touchdown - No speedrun bonus)</span>`;
+      const DURATION_SEC = 15;
+      const startT = Date.now();
+      const targetLevel = currentLevel < MAX_LEVELS ? currentLevel + 1 : 1;
 
-      if (currentLevel < MAX_LEVELS) {
-        modalTitle.innerText = 'TOUCHDOWN CONFIRMED!';
-        modalTitle.style.color = '#4ade80';
-        modalDesc.innerHTML = `Safe landing in Sector ${currentLevel}!${timeBonusHtml}${stationHtml}<br>Banked Total: <strong style="color:#fbbf24;">${bankedScore} pts</strong> (Protected)<br>Council rewarded: <strong style="color:#fbbf24;">+50 Tokens</strong> (Balance: ${aiTokens})<br>Ready for Sector ${currentLevel + 1}?`;
-        modalBtn.innerText = `PROCEED TO SECTOR ${currentLevel + 1}`;
-        modalBtn.onclick = () => {
-          modal.style.display = 'none';
-          initLevel(currentLevel + 1);
-          gameState = 'PLAYING';
-          observerSpeak(`Proceeding to Sector ${currentLevel}! Gravity calibrated to ${currentGravity.toFixed(3)}g.`, 'info');
-        };
-      } else {
-        modalTitle.innerText = '100 SECTORS CONQUERED!';
-        modalTitle.style.color = '#4ade80';
-        modalDesc.innerHTML = `The Council has completed all 100 orbital sectors!${timeBonusHtml}${stationHtml}<br>Final Banked Treasury: <strong style="color:#fbbf24;">${bankedScore}</strong> pts (Tokens: ${aiTokens})<br>Cosmic Mastery Confirmed!`;
-        modalBtn.innerText = 'BEGIN NEW CYCLE';
-        modalBtn.onclick = () => {
-          modal.style.display = 'none';
-          initLevel(1);
-          gameState = 'PLAYING';
-        };
-      }
+      modalTitle.innerText = currentLevel < MAX_LEVELS ? 'TOUCHDOWN CONFIRMED!' : '100 SECTORS CONQUERED!';
+      modalTitle.style.color = '#4ade80';
+
+      modalDesc.innerHTML = `
+        <div class="points-card-debrief">
+          <div class="points-header-badge">🚀 SECTOR ${currentLevel} MISSION POINTS DEBRIEF</div>
+          <div class="points-grid">
+            <div class="points-row">
+              <span class="p-label">🎯 Base Touchdown</span>
+              <span class="p-val" style="color:#4ade80;">+1,000 pts</span>
+            </div>
+            <div class="points-row">
+              <span class="p-label">⛽ Fuel Efficiency (${Math.round(rocket.fuel)}L)</span>
+              <span class="p-val" style="color:#38bdf8;">+${fuelBonus} pts</span>
+            </div>
+            <div class="points-row">
+              <span class="p-label">⏱️ Speedrun Precision (${Math.max(0, missionTimeRemaining).toFixed(1)}s)</span>
+              <span class="p-val" style="color:${speedrunBonus > 0 ? '#38bdf8' : '#64748b'};">${speedrunBonus > 0 ? `+${speedrunBonus} pts` : '0 pts (Overtime)'}</span>
+            </div>
+            ${quantumCoresHarvested > 0 ? `
+            <div class="points-row">
+              <span class="p-label">💎 Quantum Cores (${quantumCoresHarvested}/${totalQuantumCoresInLevel})</span>
+              <span class="p-val" style="color:#f472b6;">+${quantumCoresHarvested * 500} pts</span>
+            </div>` : ''}
+            <div class="points-row points-divider"></div>
+            <div class="points-row points-highlight">
+              <span class="p-label">🛡️ Career Banked Score</span>
+              <span class="p-val" style="color:#fbbf24; font-size:14px;">${bankedScore} pts</span>
+            </div>
+            <div class="points-row">
+              <span class="p-label">🪙 Council Token Reward</span>
+              <span class="p-val" style="color:#fbbf24;">+50 Tokens (${aiTokens} Total)</span>
+            </div>
+          </div>
+          ${stationExpansion ? `
+          <div class="points-station-badge" style="border-left: 3px solid ${stationExpansion.botConfig.themeColor};">
+            🏗️ <strong>${stationExpansion.botConfig.icon} ${stationExpansion.botConfig.shortName} Base:</strong> Built <strong>${stationExpansion.module.name}</strong> (${stationExpansion.module.type})<br>
+            <span style="font-size:10px; color:#94a3b8;">Outpost Total: ${stationExpansion.totalCount} modules</span>
+          </div>` : ''}
+          <div class="points-timer-box">
+            <div class="points-timer-track">
+              <div id="pointsTimerBar" class="points-timer-bar" style="width: 100%;"></div>
+            </div>
+            <div id="pointsTimerText" class="points-timer-text">⏱️ Auto-launching Sector ${targetLevel} in 15.0s...</div>
+          </div>
+        </div>
+      `;
+
+      modalBtn.innerText = currentLevel < MAX_LEVELS ? `PROCEED TO SECTOR ${targetLevel} (15s) ▶` : `BEGIN NEW CYCLE (15s) ▶`;
+
+      const proceedAction = () => {
+        clearVictoryTimer();
+        modal.style.display = 'none';
+        initLevel(targetLevel);
+        gameState = 'PLAYING';
+        observerSpeak(`Proceeding to Sector ${targetLevel}! Gravity calibrated to ${currentGravity.toFixed(3)}g.`, 'info');
+      };
+
+      modalBtn.onclick = proceedAction;
+
+      modal.style.display = 'flex';
+      gameState = 'WON';
+      if (typeof updateStartButtonState === 'function') updateStartButtonState();
+
+      // Start 15-second live countdown
+      victoryTimerInterval = setInterval(() => {
+        const elapsed = Date.now() - startT;
+        const remaining = Math.max(0, (DURATION_SEC * 1000 - elapsed) / 1000);
+        const frac = Math.max(0, remaining / DURATION_SEC);
+
+        const timerBar = document.getElementById('pointsTimerBar');
+        if (timerBar) timerBar.style.width = `${(frac * 100).toFixed(1)}%`;
+
+        const timerText = document.getElementById('pointsTimerText');
+        if (timerText) timerText.innerText = `⏱️ Auto-launching Sector ${targetLevel} in ${remaining.toFixed(1)}s...`;
+
+        if (modalBtn) modalBtn.innerText = currentLevel < MAX_LEVELS ? `PROCEED TO SECTOR ${targetLevel} (${Math.ceil(remaining)}s) ▶` : `BEGIN NEW CYCLE (${Math.ceil(remaining)}s) ▶`;
+
+        if (remaining <= 0) {
+          clearVictoryTimer();
+          proceedAction();
+        }
+      }, 100);
+
       if (stationExpansion) {
         observerSpeak(`🏗️ LUNAR BASE EXPANSION: ${stationExpansion.botConfig.icon} ${stationExpansion.botConfig.name} commissioned ${stationExpansion.module.name} (${stationExpansion.module.type})! Station Total: ${stationExpansion.totalCount} modules.`, 'success');
       } else {
@@ -3518,20 +3686,10 @@
 
       // Rotate model choice to try diverse strategies on next level
       rotateOllamaModel();
-
-      modal.style.display = 'flex';
-      gameState = 'WON';
-      if (typeof updateStartButtonState === 'function') updateStartButtonState();
-      if (aiAutopilotActive) {
-        setTimeout(() => {
-          if (aiAutopilotActive && gameState === 'WON') {
-            modalBtn.click();
-          }
-        }, 1800);
-      }
     }
 
     function explodeRocket(reason) {
+      clearVictoryTimer();
       rocket.crashed = true;
       sound.stopThrust();
       sound.playExplosion();
@@ -5359,8 +5517,8 @@
       runSupervisoryCheck() {
         if (!aiAutopilotActive) return;
 
-        // 1. STALL WATCHDOG: If game is stuck in modal for > 3.5s, auto-trigger next mission
-        if (gameState === 'MENU' || gameState === 'WON' || gameState === 'GAMEOVER') {
+        // 1. STALL WATCHDOG: If game is stuck in modal for > 3.5s (only on menu or crash, allowing 15s points card on victory), auto-trigger next mission
+        if (gameState === 'MENU' || gameState === 'GAMEOVER') {
           if (modal && modal.style.display !== 'none') {
             if (watchdogStatus) watchdogStatus.innerText = 'RELAUNCHING';
             if (supervisorAction) supervisorAction.innerText = 'AUTO-PROCEED';
