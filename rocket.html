@@ -780,6 +780,7 @@
             <option value="command-r:35b">⚡ Command R (35B)</option>
           </select>
           <button id="rotateModelBtn" class="small-btn">ROTATE</button>
+          <button id="clearQDimBtn" class="small-btn" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" title="Wipe Q-Table and reset Q-DIM to 0">CLEAR Q</button>
         </div>
 
         <!-- Stats -->
@@ -1102,6 +1103,14 @@
       rotateModelBtn.addEventListener('click', () => {
         rotateOllamaModel();
         updateAiStatusText();
+      });
+    }
+    const clearQDimBtn = document.getElementById('clearQDimBtn');
+    if (clearQDimBtn) {
+      clearQDimBtn.addEventListener('click', () => {
+        if (typeof rlAgent !== 'undefined') {
+          rlAgent.clearQTable();
+        }
       });
     }
 
@@ -2646,6 +2655,22 @@
         if (statesEl) statesEl.innerText = Object.keys(this.qTable).length;
       }
 
+      clearQTable() {
+        this.qTable = {};
+        this.episodes = 0;
+        this.wins = 0;
+        this.recentHistory = [];
+        this.epsilon = 0.40;
+        this.tau = 1.2;
+        this.trajectoryBuffer = [];
+        this.macroAction = null;
+        this.macroFramesLeft = 0;
+        this.macroRewardAccum = 0;
+        this.saveWeights();
+        this.updateHUDStats();
+        observerSpeak("Q-DIM Cleared! Q-Table reset to 0 states. Exploration re-engaged.", "warn");
+      }
+
       saveWeights() {
         try {
           const data = {
@@ -2655,13 +2680,13 @@
             epsilon: this.epsilon,
             tau: this.tau
           };
-          localStorage.setItem('cosmic_lander_q_v2', JSON.stringify(data));
+          localStorage.setItem('cosmic_lander_q_v3', JSON.stringify(data));
         } catch (e) {}
       }
 
       loadWeights() {
         try {
-          const raw = localStorage.getItem('cosmic_lander_q_v2');
+          const raw = localStorage.getItem('cosmic_lander_q_v3');
           if (raw) {
             const data = JSON.parse(raw);
             this.qTable = data.qTable || {};
@@ -2669,18 +2694,27 @@
             this.wins = data.wins || 0;
             this.epsilon = data.epsilon !== undefined ? data.epsilon : 0.40;
             this.tau = data.tau !== undefined ? data.tau : 1.2;
-            setTimeout(() => this.updateHUDStats(), 100);
+          } else {
+            // Fresh start: wipe legacy keys and start strictly from 0 Q-states
+            localStorage.removeItem('cosmic_lander_q_v2');
+            localStorage.removeItem('cosmic_lander_q_learning');
+            this.qTable = {};
+            this.episodes = 0;
+            this.wins = 0;
+            this.epsilon = 0.40;
+            this.tau = 1.2;
+            this.saveWeights();
           }
+          setTimeout(() => this.updateHUDStats(), 100);
         } catch (e) {}
       }
 
-      // Phase 4: Warm-start Q-table from PID heuristic flights
+      // Phase 4: Optional Warm-start Q-table from PID heuristic flights
       warmStartFromHeuristic(pad, gravity) {
         const EPISODES = 20;
         let seededStates = 0;
 
         for (let ep = 0; ep < EPISODES; ep++) {
-          // Simulate a full flight using the PID heuristic controller
           const simR = {
             x: ARENA_W * (0.22 + (ep % 3) * 0.05),
             y: ARENA_H * 0.20,
@@ -2694,7 +2728,6 @@
             const state = this.discretize(simR, simPad, []);
             const action = computeHeuristicAction(simR, simPad);
 
-            // Map heuristic action to closest RL action index
             let bestIdx = 0; // COAST
             if (action.thrust && action.left) bestIdx = 4;
             else if (action.thrust && action.right) bestIdx = 5;
@@ -2702,12 +2735,10 @@
             else if (action.left) bestIdx = 2;
             else if (action.right) bestIdx = 3;
 
-            // Seed Q-value: set this action higher than alternatives
             const qVals = this.getQValues(state);
             qVals[bestIdx] = Math.max(qVals[bestIdx], 5.0);
             seededStates++;
 
-            // Simulate physics
             if (action.thrust && simR.fuel > 0) {
               simR.vx += Math.cos(simR.angle) * 0.13;
               simR.vy += Math.sin(simR.angle) * 0.13;
@@ -2721,30 +2752,21 @@
             simR.x += simR.vx;
             simR.y += simR.vy;
 
-            // Boundary clamp
             if (simR.x < 15) { simR.x = 15; simR.vx = Math.abs(simR.vx) * 0.5; }
             if (simR.x > ARENA_W - 15) { simR.x = ARENA_W - 15; simR.vx = -Math.abs(simR.vx) * 0.5; }
             if (simR.y < 15) { simR.y = 15; simR.vy = Math.max(0, simR.vy); }
 
-            // Episode end: reached pad altitude or ground
             if (simR.y >= simPad.y || simR.y >= ARENA_H - 35) break;
           }
         }
 
         this.saveWeights();
+        this.updateHUDStats();
         return seededStates;
       }
     }
 
     const rlAgent = new QLearningAgent();
-
-    // Phase 4: Warm-start on fresh agent — seed Q-table with PID flight data
-    if (Object.keys(rlAgent.qTable).length === 0) {
-      const seeded = rlAgent.warmStartFromHeuristic(landingPad, currentGravity);
-      setTimeout(() => {
-        observerSpeak(`Heuristic warm-start complete: ${seeded} state-action pairs seeded from PID flight data. Q-table primed for learning.`, 'curated');
-      }, 500);
-    }
 
     // ==========================================
     // 🌌 VECTOR DATABASE (CURATED MASTER + DEDICATED PRIVATE TIERS)
