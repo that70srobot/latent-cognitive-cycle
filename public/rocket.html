@@ -231,8 +231,9 @@
       <div id="aiLearningStats" style="display: flex; justify-content: space-around; font-size: 10px; color: #94a3b8; margin-bottom: 4px; border-top: 1px solid rgba(56, 189, 248, 0.2); padding-top: 4px;">
         <span>EP: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
         <span>WIN: <strong id="aiSuccessRateDisplay" style="color: #4ade80;">0%</strong></span>
-        <span>VECTORS: <strong id="aiVectorsDisplay" style="color: #a855f7;">0</strong></span>
-        <span>CONSENSUS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
+        <span title="Shared Master Vector DB (Curated by Observing Bot)">CURATED: <strong id="curatedVectorsDisplay" style="color: #c084fc;">0</strong></span>
+        <span title="Private Model Vector DB (Exclusive to Active Architecture)">PVT: <strong id="privateVectorsDisplay" style="color: #38bdf8;">0</strong></span>
+        <span>CONS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
       </div>
 
       <!-- Live Council Votes -->
@@ -309,8 +310,9 @@
     const aiThought = document.getElementById('aiThought');
     const aiModeSelect = document.getElementById('aiModeSelect');
     const aiEpisodeDisplay = document.getElementById('aiEpisodeDisplay');
-    const aiSuccessRateDisplay = document.getElementById('aiSuccessRateDisplay');
-    const aiVectorsDisplay = document.getElementById('aiVectorsDisplay');
+    const curatedVectorsDisplay = document.getElementById('curatedVectorsDisplay');
+    const privateVectorsDisplay = document.getElementById('privateVectorsDisplay');
+    const aiVectorsDisplay = document.getElementById('curatedVectorsDisplay');
     const aiConsensusDisplay = document.getElementById('aiConsensusDisplay');
     const tokenDisplay = document.getElementById('tokenDisplay');
     const gravityDisplay = document.getElementById('gravityDisplay');
@@ -360,6 +362,7 @@
       if (ollamaModelSelect && ollamaModelSelect.value !== active) {
         ollamaModelSelect.value = active;
       }
+      if (typeof updateVectorHUDDisplays === 'function') updateVectorHUDDisplays();
     }
     if (ollamaModelSelect) {
       ollamaModelSelect.addEventListener('change', (e) => {
@@ -367,6 +370,7 @@
         if (idx !== -1) {
           currentModelIndex = idx;
           updateAiStatusText();
+          if (typeof updateVectorHUDDisplays === 'function') updateVectorHUDDisplays();
         }
       });
     }
@@ -945,7 +949,9 @@
       if (typeof rlAgent !== 'undefined') {
         rlAgent.recordEpisode(true);
       }
-      if (typeof vectorDB !== 'undefined') {
+      if (typeof flightSupervisor !== 'undefined' && typeof flightSupervisor.curateFlightEpisode === 'function') {
+        flightSupervisor.curateFlightEpisode(true, rocket, landingPad, asteroids, { thrust: true, left: keys.left, right: keys.right }, `Touchdown Lvl ${currentLevel}`);
+      } else if (typeof vectorDB !== 'undefined') {
         const emb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
         vectorDB.insertMemory(emb, 'WIN', { thrust: true, left: keys.left, right: keys.right }, `Touchdown Lvl ${currentLevel}`);
       }
@@ -999,7 +1005,9 @@
       if (typeof rlAgent !== 'undefined') {
         rlAgent.recordEpisode(false);
       }
-      if (typeof vectorDB !== 'undefined') {
+      if (typeof flightSupervisor !== 'undefined' && typeof flightSupervisor.curateFlightEpisode === 'function') {
+        flightSupervisor.curateFlightEpisode(false, rocket, landingPad, asteroids, { thrust: keys.thrust, left: keys.left, right: keys.right }, reason);
+      } else if (typeof vectorDB !== 'undefined') {
         const emb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
         vectorDB.insertMemory(emb, 'CRASH', { thrust: keys.thrust, left: keys.left, right: keys.right }, reason);
       }
@@ -1289,12 +1297,14 @@
     }
 
     // ==========================================
-    // 🌌 VECTOR DATABASE (KNN EMBEDDING MEMORY)
+    // 🌌 VECTOR DATABASE (CURATED MASTER + DEDICATED PRIVATE TIERS)
     // ==========================================
     class VectorDBEngine {
-      constructor() {
-        this.vectors = []; // Array of { id, embedding: number[6], outcome: 'WIN'|'CRASH', action, note }
-        this.maxEntries = 350;
+      constructor(name = 'shared', storageKey = 'cosmic_vector_db_shared', maxEntries = 250) {
+        this.name = name;
+        this.storageKey = storageKey;
+        this.maxEntries = maxEntries;
+        this.vectors = []; // Array of { id, embedding: number[6], outcome: 'WIN'|'CRASH'|'HAZARD', action, note, model, metadata }
         this.loadVectors();
       }
 
@@ -1345,45 +1355,72 @@
         return scored.slice(0, k);
       }
 
-      insertMemory(embedding, outcome, action, note = '') {
+      insertMemory(embedding, outcome, action, note = '', metadata = {}) {
         this.vectors.push({
           id: Date.now() + Math.random(),
           embedding,
           outcome,
           action,
-          note
+          note,
+          model: this.name,
+          metadata
         });
         if (this.vectors.length > this.maxEntries) {
           this.vectors.shift();
         }
         this.saveVectors();
-        if (typeof aiVectorsDisplay !== 'undefined' && aiVectorsDisplay) {
-          aiVectorsDisplay.innerText = this.vectors.length;
+        if (typeof updateVectorHUDDisplays === 'function') {
+          updateVectorHUDDisplays();
         }
       }
 
       saveVectors() {
         try {
-          localStorage.setItem('cosmic_vector_db', JSON.stringify(this.vectors.slice(-150)));
+          localStorage.setItem(this.storageKey, JSON.stringify(this.vectors.slice(-120)));
         } catch (e) {}
       }
 
       loadVectors() {
         try {
-          const raw = localStorage.getItem('cosmic_vector_db');
+          const raw = localStorage.getItem(this.storageKey);
           if (raw) {
             this.vectors = JSON.parse(raw);
-            setTimeout(() => {
-              if (typeof aiVectorsDisplay !== 'undefined' && aiVectorsDisplay) {
-                aiVectorsDisplay.innerText = this.vectors.length;
-              }
-            }, 100);
           }
         } catch (e) {}
       }
     }
 
-    const vectorDB = new VectorDBEngine();
+    // 1. Shared Curated Master Vector Database — Curated exclusively by Observing Bot (AutonomousSupervisor)
+    const curatedVectorDB = new VectorDBEngine('CuratedMaster', 'cosmic_vector_db_curated_master', 300);
+
+    // 2. Dedicated Private Vector Databases — Individualized vector space per model architecture
+    const privateVectorDBs = {};
+    for (const m of OLLAMA_MODELS) {
+      const cleanKey = m.replace(/[:.]/g, '_');
+      privateVectorDBs[m] = new VectorDBEngine(m, `cosmic_vector_db_${cleanKey}`, 150);
+    }
+    privateVectorDBs['rl'] = new VectorDBEngine('rl', 'cosmic_vector_db_rl', 150);
+
+    function getActivePrivateDB() {
+      const currentM = getActiveModelName();
+      return privateVectorDBs[currentM] || privateVectorDBs['hermes3:8b'] || privateVectorDBs[OLLAMA_MODELS[0]];
+    }
+
+    // Aliased for backward compatibility
+    const vectorDB = curatedVectorDB;
+
+    function updateVectorHUDDisplays() {
+      const activeDB = getActivePrivateDB();
+      const curCount = curatedVectorDB ? curatedVectorDB.vectors.length : 0;
+      const pvtCount = activeDB ? activeDB.vectors.length : 0;
+      if (curatedVectorsDisplay) curatedVectorsDisplay.innerText = curCount;
+      if (privateVectorsDisplay) privateVectorsDisplay.innerText = pvtCount;
+      if (aiVectorsDisplay && aiVectorsDisplay !== curatedVectorsDisplay) {
+        aiVectorsDisplay.innerText = `${curCount}C/${pvtCount}P`;
+      }
+    }
+
+    setTimeout(updateVectorHUDDisplays, 250);
 
     // ==========================================
     // 🦙 OLLAMA REAL-TIME LOCAL LLM CONNECTOR
@@ -1486,15 +1523,26 @@
       const currentEmb = vectorDB.computeEmbedding(rocket, landingPad, asteroids);
 
       if (mode === 'tribunal') {
-        // --- 1. RAG Vector Memory Retrieval ---
-        const nearestNeighbors = vectorDB.queryNearest(currentEmb, 4);
-        let vdbSuggestion = null;
-        let vdbOutcomeBias = 0; // + for win memories, - for crash
+        // --- 1. Dual-Tier Hybrid Vector Retrieval (Curated Master + Model Private) ---
+        const activePrivateDB = getActivePrivateDB();
+        const curatedMatches = curatedVectorDB.queryNearest(currentEmb, 4);
+        const privateMatches = activePrivateDB ? activePrivateDB.queryNearest(currentEmb, 4) : [];
 
-        if (nearestNeighbors.length > 0) {
-          const wins = nearestNeighbors.filter(n => n.entry.outcome === 'WIN');
-          const crashes = nearestNeighbors.filter(n => n.entry.outcome === 'CRASH');
-          vdbOutcomeBias = (wins.length - crashes.length) / nearestNeighbors.length;
+        // Curated master vectors carry 1.35x curator authority weight
+        const fusedNeighbors = [
+          ...curatedMatches.map(m => ({ ...m, source: 'Curated', effectiveSim: m.similarity * 1.35 })),
+          ...privateMatches.map(m => ({ ...m, source: 'Private', effectiveSim: m.similarity * 1.0 }))
+        ];
+        fusedNeighbors.sort((a, b) => b.effectiveSim - a.effectiveSim);
+        const topNeighbors = fusedNeighbors.slice(0, 5);
+
+        let vdbSuggestion = null;
+        let vdbOutcomeBias = 0; // + for win memories, - for crash/hazard
+
+        if (topNeighbors.length > 0) {
+          const wins = topNeighbors.filter(n => n.entry.outcome === 'WIN');
+          const hazards = topNeighbors.filter(n => n.entry.outcome === 'CRASH' || n.entry.outcome === 'HAZARD');
+          vdbOutcomeBias = (wins.length - hazards.length) / topNeighbors.length;
 
           if (wins.length > 0) {
             // Adopt successful pattern from nearest winning vector
@@ -1525,9 +1573,13 @@
         rlAgent.prevActionIdx = rlChoice.index;
         rlAgent.prevDistToPad = currentDist;
 
-        // --- 3. Query Council Member 2: Ollama Local LLM (with RAG context injected) ---
-        const ragContext = nearestNeighbors.length > 0 
-          ? `Vector memory matches: ${nearestNeighbors.map(n => `${n.entry.outcome} sim=${n.similarity.toFixed(2)}`).join(', ')}.` 
+        // --- 3. Query Council Member 2: Ollama Local LLM (with Dual-Tier RAG context) ---
+        const curWins = curatedMatches.filter(n => n.entry.outcome === 'WIN').length;
+        const pvtWins = privateMatches.filter(n => n.entry.outcome === 'WIN').length;
+        const currentModel = getActiveModelName();
+        const shortModel = currentModel.split(':')[0];
+        const ragContext = topNeighbors.length > 0 
+          ? `Curated Master Memory: ${curWins}/${curatedMatches.length} wins; ${shortModel} Private Memory: ${pvtWins}/${privateMatches.length} wins. Best match: ${topNeighbors[0].entry.outcome} (${topNeighbors[0].source}, sim=${topNeighbors[0].similarity.toFixed(2)}).` 
           : '';
         queryOllamaPilot(rocket, landingPad, asteroids, ragContext);
 
@@ -1593,17 +1645,16 @@
         const avgConsensus = Math.round((tribunalRecentConsensus.reduce((a, b) => a + b, 0) / tribunalRecentConsensus.length) * 100);
 
         // Update live vote badges in HUD
-        const currentModel = getActiveModelName().split(':')[0];
-        const modelIcon = currentModel.startsWith('hermes') ? '🪽' : (currentModel.startsWith('llama') ? '🦙' : (currentModel.startsWith('gemma') ? '💎' : '⚡'));
+        const modelIcon = shortModel.startsWith('hermes') ? '🪽' : (shortModel.startsWith('llama') ? '🦙' : (shortModel.startsWith('gemma') ? '💎' : '⚡'));
         if (voteRL) voteRL.innerText = `🧠 RL: ${voteRLAction.tag}`;
-        if (voteLLM) voteLLM.innerText = `${modelIcon} ${currentModel}: ${voteLLMAction ? voteLLMAction.tag : '...'}`;
+        if (voteLLM) voteLLM.innerText = `${modelIcon} ${shortModel}: ${voteLLMAction ? voteLLMAction.tag : '...'}`;
         if (votePID) votePID.innerText = `🚀 PID: ${votePIDAction.tag}`;
-        if (voteVDB) voteVDB.innerText = `🌌 V-Mem: ${vdbSuggestion ? (vdbOutcomeBias > 0 ? '✓' : '!') : '∅'}`;
+        if (voteVDB) voteVDB.innerText = `🌌 V-Mem: C[${curWins}W] P[${pvtWins}W]`;
         if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
-        if (aiVectorsDisplay) aiVectorsDisplay.innerText = vectorDB.vectors.length;
+        updateVectorHUDDisplays();
 
         if (aiCycleCounter % 15 === 0) {
-          const councilStatus = voteLLMAction ? `RL + ${currentModel} + PID + Vector DB` : "RL + PID + Vector DB";
+          const councilStatus = voteLLMAction ? `RL + ${shortModel} + PID + Dual VDB` : "RL + PID + Dual VDB";
           aiThought.innerText = `⚖️ Tribunal: [${councilStatus}] Consensus: ${avgConsensus}% | Tokens: ${aiTokens}`;
         }
 
@@ -1765,6 +1816,82 @@
         }
       }
 
+      curateFlightEpisode(success, r, pad, asts, finalAction, note) {
+        this.recordOutcome(success);
+        const currentM = getActiveModelName();
+        const pvtDB = getActivePrivateDB();
+        const emb = curatedVectorDB.computeEmbedding(r, pad, asts);
+
+        if (success) {
+          // 1. Log to the model's dedicated private vector database
+          if (pvtDB) {
+            pvtDB.insertMemory(emb, 'WIN', finalAction, `[${currentM}] ${note}`);
+          }
+
+          // 2. Observing Bot reviews and curates for the Shared Master Database
+          const vy = Math.abs(r.vy);
+          const vx = Math.abs(r.vx);
+          let tilt = Math.abs(r.angle - (-Math.PI / 2));
+          while (tilt > Math.PI) tilt -= Math.PI * 2;
+          tilt = Math.abs(tilt);
+
+          const safeDescent = vy <= 2.2 && vx <= 1.2 && tilt <= 0.35;
+          if (safeDescent) {
+            // Check for near-duplicate in curated database (cosine sim > 0.96)
+            const nearestCurated = curatedVectorDB.queryNearest(emb, 1);
+            const isDuplicate = nearestCurated.length > 0 && nearestCurated[0].similarity > 0.96;
+
+            if (!isDuplicate) {
+              const quality = Number((1.0 - Math.min(0.4, tilt) - Math.min(0.3, vy * 0.12)).toFixed(2));
+              curatedVectorDB.insertMemory(emb, 'WIN', finalAction, `Curated [${currentM}] Touchdown`, {
+                promotedBy: 'AutonomousSupervisor',
+                sourceModel: currentM,
+                qualityScore: quality,
+                sector: currentLevel
+              });
+
+              if (supervisorAction) {
+                supervisorAction.innerText = `PROMOTED [${currentM.split(':')[0]}]`;
+                supervisorAction.style.color = '#c084fc';
+                setTimeout(() => { if (supervisorAction) supervisorAction.style.color = '#38bdf8'; }, 2200);
+              }
+            }
+          }
+        } else {
+          // 1. Crash vector is logged to model's private DB so it learns its own specific mistake
+          if (pvtDB) {
+            pvtDB.insertMemory(emb, 'CRASH', finalAction, `[${currentM}] ${note}`);
+          }
+
+          // 2. Observing Bot shields Curated Master DB from bad crash loops.
+          // Curates a shared HAZARD warning only if crash was due to proximity collision
+          let hitAsteroid = false;
+          for (const a of asts) {
+            if (Math.hypot(a.x - r.x, a.y - r.y) < 70) {
+              hitAsteroid = true;
+              break;
+            }
+          }
+
+          if (hitAsteroid) {
+            const nearestHazard = curatedVectorDB.queryNearest(emb, 1);
+            if (nearestHazard.length === 0 || nearestHazard[0].similarity < 0.92) {
+              curatedVectorDB.insertMemory(emb, 'HAZARD', { thrust: false, left: false, right: false }, `Curated Hazard Zone: Asteroid threat`, {
+                promotedBy: 'AutonomousSupervisor',
+                hazardType: 'ASTEROID'
+              });
+              if (supervisorAction) {
+                supervisorAction.innerText = `CURATED HAZARD`;
+                supervisorAction.style.color = '#f87171';
+                setTimeout(() => { if (supervisorAction) supervisorAction.style.color = '#38bdf8'; }, 2000);
+              }
+            }
+          }
+        }
+
+        updateVectorHUDDisplays();
+      }
+
       reconfigureCouncil(triggerReason) {
         // Rotate Ollama model to try next architecture
         rotateOllamaModel();
@@ -1775,12 +1902,20 @@
           rlAgent.epsilon = Math.min(0.70, rlAgent.epsilon + 0.15); // Increase exploration
         }
 
-        // Prune any corrupt/extreme crash memories from Vector DB
-        if (vectorDB && vectorDB.vectors.length > 20) {
-          const crashes = vectorDB.vectors.filter(v => v.outcome === 'CRASH');
-          if (crashes.length > 30) {
-            vectorDB.vectors = vectorDB.vectors.slice(-40); // Prune old noise
+        // Clean up excessive crash memories from this model's private DB without corrupting curated memory
+        const activeDB = getActivePrivateDB();
+        if (activeDB && activeDB.vectors.length > 20) {
+          const crashes = activeDB.vectors.filter(v => v.outcome === 'CRASH');
+          if (crashes.length > 12) {
+            activeDB.vectors = activeDB.vectors.filter(v => v.outcome !== 'CRASH').concat(crashes.slice(-5));
+            activeDB.saveVectors();
           }
+        }
+
+        // Observing bot optimizes Curated Master DB by keeping top vectors
+        if (curatedVectorDB && curatedVectorDB.vectors.length > 250) {
+          curatedVectorDB.vectors = curatedVectorDB.vectors.slice(-200);
+          curatedVectorDB.saveVectors();
         }
 
         if (supervisorAction) {
@@ -1794,6 +1929,7 @@
         }
 
         this.consecutiveCrashes = 0;
+        updateVectorHUDDisplays();
       }
     }
 
