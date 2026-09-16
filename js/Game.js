@@ -1112,6 +1112,6 @@ export class LunarLanderGame {
   start() {
     this.initLevel(1);
     this.loop();
-    this.ui.observerSpeak("Systems nominal. Strict Modular JavaScript Engine online. Ready for mission flight.", "info", this.aiAutopilotActive);
+    this.ui.observerSpeak("Sovereign Cluster Node 1 Ingress verified. Strict Modular Flight Stack online. Ready for mission flight.", "info", this.aiAutopilotActive);
   }
 }
