@@ -348,6 +348,58 @@
       border-radius: 4px;
       border: 1px solid rgba(2, 132, 199, 0.25);
     }
+    .regime-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 9px;
+      background: rgba(15, 23, 42, 0.75);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .regime-label {
+      color: #94a3b8;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-size: 8.5px;
+    }
+    .regime-badge {
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-size: 8.5px;
+    }
+    .regime-subtext {
+      color: #cbd5e1;
+      font-family: monospace;
+      font-size: 8px;
+    }
+    .phase-transit {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border: 1px solid #38bdf8;
+    }
+    .phase-hazard {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border: 1px solid #ef4444;
+      animation: pulse 1s infinite;
+    }
+    .phase-glide {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid #f59e0b;
+    }
+    .phase-flare {
+      background: rgba(74, 222, 128, 0.25);
+      color: #4ade80;
+      border: 1px solid #22c55e;
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+    }
     .ai-thought-box {
       font-size: 10px;
       color: #a5f3fc;
@@ -737,6 +789,13 @@
           <span title="Shared Master Vector DB (Curated by Observing Bot)">CURATED: <strong id="curatedVectorsDisplay" style="color: #c084fc;">0</strong></span>
           <span title="Private Model Vector DB (Exclusive to Active Architecture)">PVT: <strong id="privateVectorsDisplay" style="color: #38bdf8;">0</strong></span>
           <span>CONS: <strong id="aiConsensusDisplay" style="color: #f59e0b;">100%</strong></span>
+        </div>
+
+        <!-- Tier 2 Regime Arbiter Status -->
+        <div id="regimeRow" class="regime-row">
+          <span class="regime-label">TIER-2 REGIME:</span>
+          <span id="flightRegimeBadge" class="regime-badge phase-transit">ORBITAL TRANSIT</span>
+          <span id="regimeWeightsBadge" class="regime-subtext">RL:1.4 | LLM:1.1 | PID:0.7</span>
         </div>
 
         <!-- Live Council Votes (3-Agent Tribunal) -->
@@ -2920,6 +2979,76 @@
     }
 
     // ==========================================
+    // 🧭 TIER-2 HIERARCHICAL FLIGHT REGIME ARBITER
+    // ==========================================
+    class FlightRegimeArbiter {
+      constructor() {
+        this.currentRegime = 'TRANSIT'; // 'TRANSIT', 'HAZARD', 'GLIDE', 'FLARE'
+        this.prevRegime = null;
+        this.weights = { rl: 1.4, llm: 1.1, pid: 0.7 };
+        this.regimeNames = {
+          'TRANSIT': { label: 'ORBITAL TRANSIT', badgeClass: 'phase-transit', desc: 'Airspace clearance & fuel economy' },
+          'HAZARD': { label: 'HAZARD EVASION', badgeClass: 'phase-hazard', desc: 'Emergency asteroid clearance' },
+          'GLIDE': { label: 'GLIDE ALIGNMENT', badgeClass: 'phase-glide', desc: 'Pad centerline & descent rate lock' },
+          'FLARE': { label: 'TERMINAL FLARE', badgeClass: 'phase-flare', desc: 'Touchdown cushion & speed floor' }
+        };
+      }
+
+      evaluate(r, pad, asts) {
+        const alt = Math.max(0, pad.y - r.y);
+
+        // Scan asteroid collision envelope
+        let nearestAstDist = Infinity;
+        for (const a of asts) {
+          const d = Math.hypot(a.x - r.x, a.y - r.y);
+          if (d < nearestAstDist) nearestAstDist = d;
+        }
+
+        let newRegime;
+
+        // 1. Hazard Evasion: Active threat within proximity bubble (<115px)
+        if (nearestAstDist < 115) {
+          newRegime = 'HAZARD';
+          this.weights = { rl: 0.8, llm: 1.3, pid: 1.5 }; // Safety & LLM hazard memory take priority
+        }
+        // 2. Terminal Flare: Close to landing deck (<110px)
+        else if (alt < 110) {
+          newRegime = 'FLARE';
+          this.weights = { rl: 0.8, llm: 0.5, pid: 1.8 }; // PID safety governor dominates to prevent lethal impact
+        }
+        // 3. Glide Slope Alignment: Mid descent (110px to 320px)
+        else if (alt < 320) {
+          newRegime = 'GLIDE';
+          this.weights = { rl: 1.2, llm: 1.0, pid: 1.2 }; // Balanced alignment & rate control
+        }
+        // 4. Orbital Transit: High altitude (>320px)
+        else {
+          newRegime = 'TRANSIT';
+          this.weights = { rl: 1.4, llm: 1.1, pid: 0.7 }; // RL exploration & macro navigation
+        }
+
+        if (newRegime !== this.currentRegime) {
+          this.prevRegime = this.currentRegime;
+          this.currentRegime = newRegime;
+          this.onRegimeChange(newRegime);
+        }
+
+        return {
+          regime: this.currentRegime,
+          info: this.regimeNames[this.currentRegime],
+          weights: this.weights
+        };
+      }
+
+      onRegimeChange(regime) {
+        const info = this.regimeNames[regime];
+        observerSpeak(`Regime Shift: [${info.label}] active. Tribunal weights: RL=${this.weights.rl}x, LLM=${this.weights.llm}x, PID=${this.weights.pid}x.`, 'info');
+      }
+    }
+
+    const regimeArbiter = new FlightRegimeArbiter();
+
+    // ==========================================
     // ⚖️ TRIBUNAL ARBITER & SHARED VECTOR REASONING
     // ==========================================
     let tribunalRecentConsensus = [];
@@ -3020,36 +3149,40 @@
         // --- 4. Query Council Member 3: Heuristic PID Flight Computer ---
         const votePIDAction = computeHeuristicAction(rocket, landingPad);
 
-        // --- 5. 3-AGENT TRIBUNAL VOTING ARBITRATION ---
-        // The Tribunal consists of exactly 3 agents:
-        //   1. PID Copilot (Algorithmic stability & flight envelope baseline)
-        //   2. RL Pilot (Q-learning agent with learned trajectory policy)
-        //   3. LLM Pilot (Local Ollama LLM augmented with Dual-Tier Vector Memory)
+        // --- 5. TIER-2 REGIME ARBITRATION & 3-AGENT TRIBUNAL VOTING ---
+        // Tier-2 Arbiter dynamically modulates the balance of power based on mission phase
+        const regimeState = regimeArbiter.evaluate(rocket, landingPad, asteroids);
+        const { rl: wRL, llm: wLLM, pid: wPID } = regimeState.weights;
+
+        // In Terminal Flare regime, freeze RL random exploration so it doesn't crash 5ft from pad
+        if (regimeState.regime === 'FLARE') {
+          rlChoice.explored = false;
+        }
+
         let thrustVotes = 0;
         let leftVotes = 0;
         let rightVotes = 0;
 
-        // Agent 1: PID Copilot
-        const pidWeight = 1.05;
-        if (votePIDAction.thrust) thrustVotes += pidWeight;
-        if (votePIDAction.left) leftVotes += pidWeight;
-        if (votePIDAction.right) rightVotes += pidWeight;
+        // Agent 1: PID Copilot (weight dynamically modulated by Tier-2 regime)
+        if (votePIDAction.thrust) thrustVotes += wPID;
+        if (votePIDAction.left) leftVotes += wPID;
+        if (votePIDAction.right) rightVotes += wPID;
 
-        // Agent 2: RL Pilot
-        const rlWeight = Math.min(1.4, 1.0 + (rlAgent.wins * 0.02));
-        if (voteRLAction.thrust) thrustVotes += rlWeight;
-        if (voteRLAction.left) leftVotes += rlWeight;
-        if (voteRLAction.right) rightVotes += rlWeight;
+        // Agent 2: RL Pilot (weight dynamically modulated by Tier-2 regime)
+        const effectiveRLWeight = wRL * Math.min(1.3, 0.95 + (rlAgent.wins * 0.02));
+        if (voteRLAction.thrust) thrustVotes += effectiveRLWeight;
+        if (voteRLAction.left) leftVotes += effectiveRLWeight;
+        if (voteRLAction.right) rightVotes += effectiveRLWeight;
 
-        // Agent 3: LLM Pilot (if responsive)
-        const llmWeight = voteLLMAction ? 1.0 : 0;
+        // Agent 3: LLM Pilot (weight dynamically modulated by Tier-2 regime)
+        const effectiveLLMWeight = voteLLMAction ? wLLM : 0;
         if (voteLLMAction) {
-          if (voteLLMAction.thrust) thrustVotes += llmWeight;
-          if (voteLLMAction.left) leftVotes += llmWeight;
-          if (voteLLMAction.right) rightVotes += llmWeight;
+          if (voteLLMAction.thrust) thrustVotes += effectiveLLMWeight;
+          if (voteLLMAction.left) leftVotes += effectiveLLMWeight;
+          if (voteLLMAction.right) rightVotes += effectiveLLMWeight;
         }
 
-        const totalCouncil = pidWeight + rlWeight + llmWeight;
+        const totalCouncil = wPID + effectiveRLWeight + effectiveLLMWeight;
         const finalThrust = (thrustVotes / totalCouncil) >= 0.48 && rocket.fuel > 0;
         const finalLeft = (leftVotes / totalCouncil) >= 0.45 && !((rightVotes / totalCouncil) >= 0.45);
         const finalRight = (rightVotes / totalCouncil) >= 0.45 && !finalLeft;
@@ -3079,6 +3212,17 @@
           if (votePID) votePID.innerText = `🚀 ${pidTag}`;
           if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
 
+          // Update Tier-2 Regime Badge & Active Weights
+          const rBadge = document.getElementById('flightRegimeBadge');
+          if (rBadge) {
+            rBadge.innerText = regimeState.info.label;
+            rBadge.className = `regime-badge ${regimeState.info.badgeClass}`;
+          }
+          const rwBadge = document.getElementById('regimeWeightsBadge');
+          if (rwBadge) {
+            rwBadge.innerText = `RL:${effectiveRLWeight.toFixed(1)} | LLM:${wLLM.toFixed(1)} | PID:${wPID.toFixed(1)}`;
+          }
+
           const rlCurrentAction = document.getElementById('rlCurrentAction');
           if (rlCurrentAction) rlCurrentAction.innerText = rlTag;
           const rlQVal = document.getElementById('rlQValue');
@@ -3091,7 +3235,7 @@
 
         if (aiCycleCounter % 15 === 0) {
           const councilStatus = voteLLMAction ? `RL + ${shortModel} + PID` : "RL + PID";
-          aiThought.innerText = `⚖️ 3-Agent Tribunal: [${councilStatus}] Consensus: ${avgConsensus}% | Tokens: ${aiTokens}`;
+          aiThought.innerText = `⚖️ [${regimeState.info.label}] ${councilStatus} | Cons: ${avgConsensus}%`;
         }
 
       } else if (mode === 'rl') {
