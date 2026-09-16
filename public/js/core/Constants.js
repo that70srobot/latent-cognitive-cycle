@@ -6,6 +6,20 @@
 export const ARENA_W = 1200;
 export const ARENA_H = 800;
 
+export const SOVEREIGN_NODE_CONFIG = {
+  clusterId: 'sovereign-cluster-v1',
+  nodeId: 'node-1-genesis',
+  nodeName: 'Node 1 (Genesis Ingress Gateway)',
+  host: 'M3 Max (36GB) ⇄ K3s Ingress',
+  status: 'ONLINE',
+  defaultPort: 11434,
+  deployedEndpoints: {
+    flightSimulator: '/rocket.html',
+    modularModule: '/js/index.js',
+    modelForge: '/rocket.html#forge'
+  }
+};
+
 export const OLLAMA_MODELS = [
   'command-r:35b',
   'gemma2:9b',

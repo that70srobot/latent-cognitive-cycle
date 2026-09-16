@@ -382,14 +382,14 @@ export function App() {
             {!isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
-          {/* Space Rocket Game Launcher */}
+          {/* Sovereign Node 1: Autonomous Flight Computer Launcher */}
           <a
             href="./rocket.html"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/40 bg-gradient-to-r from-amber-950/70 to-slate-900 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-mono transition-all shadow-md shadow-amber-500/20"
-            title="Play Cosmic Lander: Space Rocket Game"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/50 bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/60 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-mono transition-all shadow-md shadow-amber-500/20"
+            title="Node 1: Autonomous Flight Guidance & Model Forge"
           >
-            <Rocket className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Rocket Game</span>
+            <Rocket className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            <span className="hidden sm:inline font-bold">Node 1: Flight Computer</span>
           </a>
 
           {/* Shinys Screensaver Mode Toggle */}
@@ -790,10 +790,10 @@ export function App() {
                 <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
                 <div>
                   <h3 className="text-base font-bold font-mono text-amber-200 uppercase tracking-wider">
-                    Node 1: Genesis Blueprint [Planted]
+                    Node 1: Genesis Blueprint [Sovereign Cluster Node 1]
                   </h3>
                   <p className="text-xs text-slate-400 font-mono">
-                    The root architectural blueprint that seeds this cognitive universe
+                    Root Ingress Gateway, Autonomous Flight Guidance Engine & Local Model Forge
                   </p>
                 </div>
               </div>
@@ -810,7 +810,7 @@ export function App() {
               <img
                 src="/node1-genesis.jpg"
                 alt="Node 1 Genesis Blueprint"
-                className="w-full max-h-80 object-contain hover:scale-105 transition-transform duration-500"
+                className="w-full max-h-72 object-contain hover:scale-105 transition-transform duration-500"
               />
             </div>
 
@@ -821,37 +821,59 @@ export function App() {
                 <span className="text-amber-300 font-semibold">Node #1 [0.0, 0.1, 0.2]</span>
               </div>
               <div>
-                <span className="text-slate-500 block">Cluster Gateway:</span>
-                <span className="text-cyan-300 font-semibold">Node 1 [Encrypted Ingress]</span>
+                <span className="text-slate-500 block">Cluster Ingress Gateway:</span>
+                <span className="text-cyan-300 font-semibold">Node 1 (Port 11434 ⇄ Local Ollama)</span>
               </div>
               <div>
                 <span className="text-slate-500 block">Cluster Architecture:</span>
                 <span className="text-purple-300">M3 Max (36GB) ⇄ K3s Ingress</span>
               </div>
               <div>
-                <span className="text-slate-500 block">Cluster File Status:</span>
-                <span className="text-emerald-400 font-semibold">Planted on M3 Max Project</span>
+                <span className="text-slate-500 block">Autonomous Guidance Engine:</span>
+                <span className="text-emerald-400 font-semibold">Modular ES Stack (22 Modules Deployed)</span>
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setIsNode1ModalOpen(false);
-                  triggerInference('What is consciousness?');
-                }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-cyan-500 hover:from-amber-400 hover:to-cyan-400 text-slate-950 font-mono text-xs font-bold shadow-lg shadow-amber-500/20 transition-all flex items-center gap-1.5"
-              >
-                <span>Awaken Stream from Node 1</span>
-                <ArrowUp className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsNode1ModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-mono transition-colors"
-              >
-                Close
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <a
+                  href="./rocket.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold shadow-lg shadow-amber-500/20 transition-all flex items-center gap-1.5"
+                >
+                  <Rocket className="w-3.5 h-3.5" />
+                  <span>Launch Flight Computer</span>
+                </a>
+                <a
+                  href="./rocket.html#forge"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 hover:text-white font-mono text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <span>⚡ Model Forge Studio</span>
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setIsNode1ModalOpen(false);
+                    triggerInference('What is consciousness?');
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-mono text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-1.5"
+                >
+                  <span>Awaken Stream</span>
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setIsNode1ModalOpen(false)}
+                  className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-mono transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
