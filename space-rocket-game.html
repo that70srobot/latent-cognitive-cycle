@@ -214,6 +214,19 @@
         </label>
       </div>
 
+      <!-- Model Roster & Selector -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 10px; margin-bottom: 4px; background: rgba(30, 41, 59, 0.5); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.2);">
+        <span style="color: #94a3b8;">MODEL:</span>
+        <select id="ollamaModelSelect" style="background: #0f172a; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; font-size: 10px; padding: 1px 4px; outline: none; flex: 1; margin: 0 4px;">
+          <option value="hermes3:8b" selected>🪽 Hermes 3 (8B)</option>
+          <option value="llama3.1:8b">🦙 Llama 3.1 (8B)</option>
+          <option value="gemma2:9b">💎 Gemma 2 (9B)</option>
+          <option value="gemma2:27b">💎 Gemma 2 (27B)</option>
+          <option value="command-r:35b">⚡ Command R (35B)</option>
+        </select>
+        <button id="rotateModelBtn" title="Rotate model" style="background: rgba(2, 132, 199, 0.3); border: 1px solid #0284c7; color: #38bdf8; border-radius: 4px; font-size: 9px; padding: 1px 6px; cursor: pointer;">ROTATE</button>
+      </div>
+
       <!-- Tribunal Voting & Vector Memory Stats -->
       <div id="aiLearningStats" style="display: flex; justify-content: space-around; font-size: 10px; color: #94a3b8; margin-bottom: 4px; border-top: 1px solid rgba(56, 189, 248, 0.2); padding-top: 4px;">
         <span>EP: <strong id="aiEpisodeDisplay" style="color: #38bdf8;">0</strong></span>
@@ -307,6 +320,8 @@
     const voteVDB = document.getElementById('voteVDB');
     const watchdogStatus = document.getElementById('watchdogStatus');
     const supervisorAction = document.getElementById('supervisorAction');
+    const ollamaModelSelect = document.getElementById('ollamaModelSelect');
+    const rotateModelBtn = document.getElementById('rotateModelBtn');
 
     // Token Economy (Starting with 2000 tokens)
     let aiTokens = 2000;
@@ -330,14 +345,36 @@
       }
     }
 
-    // Dynamic Multi-Model Roster (Alternates & tries choices across runs)
-    const OLLAMA_MODELS = ['llama3.1:8b', 'gemma2:9b', 'gemma2:27b', 'command-r:35b'];
+    // Dynamic Multi-Model Roster with Hermes 3 leading candidate
+    const OLLAMA_MODELS = ['hermes3:8b', 'llama3.1:8b', 'gemma2:9b', 'gemma2:27b', 'command-r:35b'];
     let currentModelIndex = 0;
     function getActiveModelName() {
       return OLLAMA_MODELS[currentModelIndex % OLLAMA_MODELS.length];
     }
     function rotateOllamaModel() {
       currentModelIndex = (currentModelIndex + 1) % OLLAMA_MODELS.length;
+      syncModelUI();
+    }
+    function syncModelUI() {
+      const active = getActiveModelName();
+      if (ollamaModelSelect && ollamaModelSelect.value !== active) {
+        ollamaModelSelect.value = active;
+      }
+    }
+    if (ollamaModelSelect) {
+      ollamaModelSelect.addEventListener('change', (e) => {
+        const idx = OLLAMA_MODELS.indexOf(e.target.value);
+        if (idx !== -1) {
+          currentModelIndex = idx;
+          updateAiStatusText();
+        }
+      });
+    }
+    if (rotateModelBtn) {
+      rotateModelBtn.addEventListener('click', () => {
+        rotateOllamaModel();
+        updateAiStatusText();
+      });
     }
 
     let aiAutopilotActive = false;
@@ -374,7 +411,9 @@
       } else if (mode === 'rl') {
         aiThought.innerText = `🧠 Q-Learning Pilot Active: Ep #${rlAgent.episodes} | Explr: ${(rlAgent.epsilon * 100).toFixed(0)}%`;
       } else if (mode === 'ollama') {
-        aiThought.innerText = `🦙 Ollama Local LLM Pilot: Querying llama3.1 on port 11434...`;
+        const activeM = getActiveModelName();
+        const modelIcon = activeM.startsWith('hermes') ? '🪽' : (activeM.startsWith('llama') ? '🦙' : (activeM.startsWith('gemma') ? '💎' : '⚡'));
+        aiThought.innerText = `${modelIcon} Ollama Local LLM Pilot: Querying [${activeM}] on port 11434...`;
       } else {
         aiThought.innerText = `🚀 Heuristic Flight Guidance Computer Online`;
       }
@@ -1555,8 +1594,9 @@
 
         // Update live vote badges in HUD
         const currentModel = getActiveModelName().split(':')[0];
+        const modelIcon = currentModel.startsWith('hermes') ? '🪽' : (currentModel.startsWith('llama') ? '🦙' : (currentModel.startsWith('gemma') ? '💎' : '⚡'));
         if (voteRL) voteRL.innerText = `🧠 RL: ${voteRLAction.tag}`;
-        if (voteLLM) voteLLM.innerText = `🦙 ${currentModel}: ${voteLLMAction ? voteLLMAction.tag : '...'}`;
+        if (voteLLM) voteLLM.innerText = `${modelIcon} ${currentModel}: ${voteLLMAction ? voteLLMAction.tag : '...'}`;
         if (votePID) votePID.innerText = `🚀 PID: ${votePIDAction.tag}`;
         if (voteVDB) voteVDB.innerText = `🌌 V-Mem: ${vdbSuggestion ? (vdbOutcomeBias > 0 ? '✓' : '!') : '∅'}`;
         if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
