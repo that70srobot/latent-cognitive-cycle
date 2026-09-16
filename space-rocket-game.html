@@ -1804,12 +1804,29 @@
         this.x += this.vx;
         this.y += this.vy;
 
-        // Boundary bounce / wrap in virtual arena
-        if (this.x < 15) { this.x = 15; this.vx = Math.abs(this.vx) * 0.5; }
-        if (this.x > ARENA_W - 15) { this.x = ARENA_W - 15; this.vx = -Math.abs(this.vx) * 0.5; }
+        // Seamless horizontal screen wrap across viewport
+        if (this.x < 0) {
+          this.x += ARENA_W;
+        } else if (this.x >= ARENA_W) {
+          this.x -= ARENA_W;
+        }
+
+        // Top ceiling buffer
         if (this.y < 15) { this.y = 15; this.vy = Math.max(0, this.vy); }
       }
+
       draw(ctx) {
+        this.renderRocket(ctx, this.x, this.y);
+
+        // Seamless horizontal screen wrap ghost rendering
+        if (this.x < 65) {
+          this.renderRocket(ctx, this.x + ARENA_W, this.y);
+        } else if (this.x > ARENA_W - 65) {
+          this.renderRocket(ctx, this.x - ARENA_W, this.y);
+        }
+      }
+
+      renderRocket(ctx, px, py) {
         // 1. Draw Tactical AR Target Reticle around the rocket (in screen space)
         ctx.save();
         const boxSize = 28;
@@ -1819,7 +1836,7 @@
         // Pulsing radar target beacon circle
         const beaconPulse = 8 + Math.sin(Date.now() * 0.006) * 4;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, boxSize + beaconPulse, 0, Math.PI * 2);
+        ctx.arc(px, py, boxSize + beaconPulse, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -1827,21 +1844,21 @@
         // Reticle corner brackets
         ctx.beginPath();
         // Top-left
-        ctx.moveTo(this.x - boxSize, this.y - boxSize + 7);
-        ctx.lineTo(this.x - boxSize, this.y - boxSize);
-        ctx.lineTo(this.x - boxSize + 7, this.y - boxSize);
+        ctx.moveTo(px - boxSize, py - boxSize + 7);
+        ctx.lineTo(px - boxSize, py - boxSize);
+        ctx.lineTo(px - boxSize + 7, py - boxSize);
         // Top-right
-        ctx.moveTo(this.x + boxSize - 7, this.y - boxSize);
-        ctx.lineTo(this.x + boxSize, this.y - boxSize);
-        ctx.lineTo(this.x + boxSize, this.y - boxSize + 7);
+        ctx.moveTo(px + boxSize - 7, py - boxSize);
+        ctx.lineTo(px + boxSize, py - boxSize);
+        ctx.lineTo(px + boxSize, py - boxSize + 7);
         // Bottom-left
-        ctx.moveTo(this.x - boxSize, this.y + boxSize - 7);
-        ctx.lineTo(this.x - boxSize, this.y + boxSize);
-        ctx.lineTo(this.x - boxSize + 7, this.y + boxSize);
+        ctx.moveTo(px - boxSize, py + boxSize - 7);
+        ctx.lineTo(px - boxSize, py + boxSize);
+        ctx.lineTo(px - boxSize + 7, py + boxSize);
         // Bottom-right
-        ctx.moveTo(this.x + boxSize - 7, this.y + boxSize);
-        ctx.lineTo(this.x + boxSize, this.y + boxSize);
-        ctx.lineTo(this.x + boxSize, this.y + boxSize - 7);
+        ctx.moveTo(px + boxSize - 7, py + boxSize);
+        ctx.lineTo(px + boxSize, py + boxSize);
+        ctx.lineTo(px + boxSize, py + boxSize - 7);
         ctx.strokeStyle = this.shield < 30 ? '#ef4444' : '#38bdf8';
         ctx.lineWidth = 1.6;
         ctx.stroke();
@@ -1850,8 +1867,8 @@
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
         ctx.lineWidth = 1.4;
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x + this.vx * 16, this.y + this.vy * 16);
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + this.vx * 16, py + this.vy * 16);
         ctx.stroke();
 
         // AR Ship HUD Callout
@@ -1859,21 +1876,21 @@
         ctx.fillStyle = '#38bdf8';
         ctx.textAlign = 'left';
         const modelLabel = typeof getActiveModelName === 'function' ? getActiveModelName().split(':')[0].toUpperCase() : 'SHIP';
-        ctx.fillText(`🚀 [${modelLabel}]`, this.x + boxSize + 5, this.y - 4);
-        const alt = typeof landingPad !== 'undefined' ? Math.max(0, Math.round(landingPad.y - this.y)) : 0;
+        ctx.fillText(`🚀 [${modelLabel}]`, px + boxSize + 5, py - 4);
+        const alt = typeof landingPad !== 'undefined' ? Math.max(0, Math.round(landingPad.y - py)) : 0;
         const spd = Math.hypot(this.vx, this.vy).toFixed(1);
         ctx.fillStyle = '#e2e8f0';
-        ctx.fillText(`ALT: ${alt}m | ${spd} m/s`, this.x + boxSize + 5, this.y + 8);
+        ctx.fillText(`ALT: ${alt}m | ${spd} m/s`, px + boxSize + 5, py + 8);
 
         // Stabilizing Thrusters Live Indicator
         const stabTag = (this.leftStabilizer ? '◀' : '·') + ' STAB ' + (this.rightStabilizer ? '▶' : '·');
         ctx.fillStyle = (this.leftStabilizer || this.rightStabilizer) ? '#00f2fe' : '#64748b';
-        ctx.fillText(stabTag, this.x + boxSize + 5, this.y + 20);
+        ctx.fillText(stabTag, px + boxSize + 5, py + 20);
         ctx.restore();
 
         // 2. Draw Rocket Hull (Oriented in Local Rotational Space)
         ctx.save();
-        ctx.translate(this.x, this.y);
+        ctx.translate(px, py);
         ctx.rotate(this.angle + Math.PI / 2);
 
         // Attached Engine Exhaust Plume (visible whenever thrusting)
@@ -2067,6 +2084,8 @@
       update() {
         this.x += this.vx;
         this.y += this.vy;
+        if (this.x < 0) this.x += ARENA_W;
+        else if (this.x >= ARENA_W) this.x -= ARENA_W;
         this.life--;
         this.size *= 0.94;
       }
@@ -2111,8 +2130,17 @@
         if (this.y > ARENA_H + this.radius) this.y = -this.radius;
       }
       draw(ctx) {
+        this.renderAsteroid(ctx, this.x, this.y);
+        // Ghost render for screen wrapping
+        if (this.x < this.radius) {
+          this.renderAsteroid(ctx, this.x + ARENA_W, this.y);
+        } else if (this.x > ARENA_W - this.radius) {
+          this.renderAsteroid(ctx, this.x - ARENA_W, this.y);
+        }
+      }
+      renderAsteroid(ctx, px, py) {
         ctx.save();
-        ctx.translate(this.x, this.y);
+        ctx.translate(px, py);
         ctx.rotate(this.rotation);
         ctx.beginPath();
         this.points.forEach((pt, i) => {
@@ -2374,7 +2402,9 @@
         });
       }
       applyForce(obj) {
-        const dx = this.x - obj.x;
+        let dx = this.x - obj.x;
+        if (dx > ARENA_W / 2) dx -= ARENA_W;
+        else if (dx < -ARENA_W / 2) dx += ARENA_W;
         const dy = this.y - obj.y;
         const distSq = dx * dx + dy * dy;
         const dist = Math.sqrt(distSq);
@@ -2445,7 +2475,8 @@
       }
       checkCollision(r) {
         if (this.collected) return false;
-        const dx = r.x - this.x;
+        let dx = Math.abs(r.x - this.x);
+        if (dx > ARENA_W / 2) dx = ARENA_W - dx;
         const dy = r.y - (this.y + Math.sin(this.floatOffset) * 4);
         if (Math.hypot(dx, dy) < r.radius + this.radius) {
           this.collected = true;
@@ -2557,7 +2588,9 @@
         if (anomalies && anomalies.length > 0) {
           let minAnomDist = Infinity;
           for (const a of anomalies) {
-            const d = Math.hypot(a.x - r.x, a.y - r.y);
+            let dx = Math.abs(a.x - r.x);
+            if (dx > ARENA_W / 2) dx = ARENA_W - dx;
+            const d = Math.hypot(dx, a.y - r.y);
             if (d < minAnomDist) minAnomDist = d;
           }
           if (minAnomDist < 250) {
@@ -2568,7 +2601,9 @@
         // 3. Asteroid hazard proximity margin
         let minAstDist = Infinity;
         for (const a of asts) {
-          const d = Math.hypot(a.x - r.x, a.y - r.y);
+          let dx = Math.abs(a.x - r.x);
+          if (dx > ARENA_W / 2) dx = ARENA_W - dx;
+          const d = Math.hypot(dx, a.y - r.y);
           if (d < minAstDist) minAstDist = d;
         }
         if (minAstDist < 140) {
@@ -3323,9 +3358,10 @@
       // Check fuel orbs
       for (let i = fuelOrbs.length - 1; i >= 0; i--) {
         const orb = fuelOrbs[i];
-        const dx = rocket.x - orb.x;
+        let dx = Math.abs(rocket.x - orb.x);
+        if (dx > ARENA_W / 2) dx = ARENA_W - dx;
         const dy = rocket.y - orb.y;
-        if (Math.sqrt(dx * dx + dy * dy) < rocket.radius + orb.radius) {
+        if (Math.hypot(dx, dy) < rocket.radius + orb.radius) {
           fuelOrbs.splice(i, 1);
           rocket.fuel = Math.min(rocket.maxFuel || 250, rocket.fuel + 80);
           currentSectorScore += 250;
@@ -3360,9 +3396,10 @@
 
       // Check asteroids
       for (const ast of asteroids) {
-        const dx = rocket.x - ast.x;
+        let dx = Math.abs(rocket.x - ast.x);
+        if (dx > ARENA_W / 2) dx = ARENA_W - dx;
         const dy = rocket.y - ast.y;
-        if (Math.sqrt(dx * dx + dy * dy) < rocket.radius + ast.radius * 0.85) {
+        if (Math.hypot(dx, dy) < rocket.radius + ast.radius * 0.85) {
           explodeRocket('Asteroid impact! Hull integrity breached.');
           return;
         }
@@ -3658,7 +3695,9 @@
       if (typeof landingPad !== 'undefined') {
         const padCenterX = landingPad.x + landingPad.width / 2;
         const padCenterY = landingPad.y;
-        const dx = padCenterX - rocket.x;
+        let dx = padCenterX - rocket.x;
+        if (dx > ARENA_W / 2) dx -= ARENA_W;
+        else if (dx < -ARENA_W / 2) dx += ARENA_W;
         const dy = padCenterY - rocket.y;
         const dist = Math.hypot(dx, dy);
 
@@ -3691,7 +3730,9 @@
       // (B) Asteroids (Hostile Hazards - Crimson)
       if (typeof asteroids !== 'undefined') {
         asteroids.forEach(ast => {
-          const dx = ast.x - rocket.x;
+          let dx = ast.x - rocket.x;
+          if (dx > ARENA_W / 2) dx -= ARENA_W;
+          else if (dx < -ARENA_W / 2) dx += ARENA_W;
           const dy = ast.y - rocket.y;
           const dist = Math.hypot(dx, dy);
           if (dist <= radarRangeWorld) {
@@ -3711,7 +3752,9 @@
       // (C) Fuel Pods (Resource Canisters - Amber Gold)
       if (typeof fuelOrbs !== 'undefined') {
         fuelOrbs.forEach(orb => {
-          const dx = orb.x - rocket.x;
+          let dx = orb.x - rocket.x;
+          if (dx > ARENA_W / 2) dx -= ARENA_W;
+          else if (dx < -ARENA_W / 2) dx += ARENA_W;
           const dy = orb.y - rocket.y;
           const dist = Math.hypot(dx, dy);
           if (dist <= radarRangeWorld) {
@@ -3731,7 +3774,9 @@
       // (D) Gravity Anomalies (Hostile Gravitational Vortexes - Violet)
       if (typeof gravityAnomalies !== 'undefined') {
         gravityAnomalies.forEach(anom => {
-          const dx = anom.x - rocket.x;
+          let dx = anom.x - rocket.x;
+          if (dx > ARENA_W / 2) dx -= ARENA_W;
+          else if (dx < -ARENA_W / 2) dx += ARENA_W;
           const dy = anom.y - rocket.y;
           const dist = Math.hypot(dx, dy);
           if (dist <= radarRangeWorld) {
@@ -3758,7 +3803,9 @@
       if (typeof quantumCores !== 'undefined') {
         quantumCores.forEach(core => {
           if (!core.collected) {
-            const dx = core.x - rocket.x;
+            let dx = core.x - rocket.x;
+            if (dx > ARENA_W / 2) dx -= ARENA_W;
+            else if (dx < -ARENA_W / 2) dx += ARENA_W;
             const dy = core.y - rocket.y;
             const dist = Math.hypot(dx, dy);
             if (dist <= radarRangeWorld) {
@@ -3803,7 +3850,9 @@
         const groundY = ARENA_H - 35;
         for (const botKey in BOT_STATIONS_META) {
           const meta = BOT_STATIONS_META[botKey];
-          const dx = meta.x - rocket.x;
+          let dx = meta.x - rocket.x;
+          if (dx > ARENA_W / 2) dx -= ARENA_W;
+          else if (dx < -ARENA_W / 2) dx += ARENA_W;
           const dy = groundY - rocket.y;
           const dist = Math.hypot(dx, dy);
           if (dist <= radarRangeWorld) {
@@ -3870,10 +3919,61 @@
       ctx.translate(offsetX, offsetY);
       ctx.scale(currentScale, currentScale);
 
-      // Arena boundary backdrop border
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0, 0, ARENA_W, ARENA_H);
+      // Arena boundary backdrop & Quantum Screen-Wrap Portals
+      ctx.save();
+      const wrapTime = Date.now() * 0.003;
+      const pulseAlpha = 0.28 + Math.sin(wrapTime) * 0.12;
+
+      // Top ceiling boundary barrier
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(0, 15);
+      ctx.lineTo(ARENA_W, 15);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Left Portal Slipstream (x = 0)
+      const leftPortalGrad = ctx.createLinearGradient(0, 0, 22, 0);
+      leftPortalGrad.addColorStop(0, `rgba(56, 189, 248, ${pulseAlpha * 0.7})`);
+      leftPortalGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = leftPortalGrad;
+      ctx.fillRect(0, 0, 22, ARENA_H - 35);
+
+      ctx.strokeStyle = `rgba(56, 189, 248, ${pulseAlpha * 1.5})`;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([12, 10]);
+      ctx.lineDashOffset = -wrapTime * 15;
+      ctx.beginPath();
+      ctx.moveTo(1, 15);
+      ctx.lineTo(1, ARENA_H - 35);
+      ctx.stroke();
+
+      // Right Portal Slipstream (x = ARENA_W)
+      const rightPortalGrad = ctx.createLinearGradient(ARENA_W, 0, ARENA_W - 22, 0);
+      rightPortalGrad.addColorStop(0, `rgba(56, 189, 248, ${pulseAlpha * 0.7})`);
+      rightPortalGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = rightPortalGrad;
+      ctx.fillRect(ARENA_W - 22, 0, 22, ARENA_H - 35);
+
+      ctx.strokeStyle = `rgba(56, 189, 248, ${pulseAlpha * 1.5})`;
+      ctx.beginPath();
+      ctx.moveTo(ARENA_W - 1, 15);
+      ctx.lineTo(ARENA_W - 1, ARENA_H - 35);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Edge Warp Chevron Indicators
+      ctx.font = 'bold 8px monospace';
+      ctx.fillStyle = `rgba(0, 242, 254, ${pulseAlpha * 1.3})`;
+      for (let wy = 120; wy < ARENA_H - 80; wy += 140) {
+        ctx.textAlign = 'left';
+        ctx.fillText('◀ WRAP', 5, wy);
+        ctx.textAlign = 'right';
+        ctx.fillText('WRAP ▶', ARENA_W - 5, wy);
+      }
+      ctx.restore();
 
       // Starfield background
       ctx.save();
@@ -3885,15 +3985,38 @@
       }
       ctx.restore();
 
-      // Tactical Guidance Corridor (Dashed neon green beam from ship to pad)
+      // Tactical Guidance Corridor (Dashed neon green beam from ship to pad - wrap aware)
       if (!rocket.crashed && !rocket.landed && typeof landingPad !== 'undefined') {
         ctx.save();
         ctx.strokeStyle = 'rgba(74, 222, 128, 0.4)';
         ctx.lineWidth = 1.4;
         ctx.setLineDash([6, 8]);
         ctx.beginPath();
-        ctx.moveTo(rocket.x, rocket.y);
-        ctx.lineTo(landingPad.x + landingPad.width / 2, landingPad.y);
+        const padCenterX = landingPad.x + landingPad.width / 2;
+        let dx = padCenterX - rocket.x;
+        if (Math.abs(dx) > ARENA_W / 2) {
+          // Wrap path is shorter: draw two continuous segments through screen edges
+          if (dx > 0) {
+            const totalDist = rocket.x + (ARENA_W - padCenterX);
+            const t = rocket.x / (totalDist || 1);
+            const edgeY = rocket.y + (landingPad.y - rocket.y) * t;
+            ctx.moveTo(rocket.x, rocket.y);
+            ctx.lineTo(0, edgeY);
+            ctx.moveTo(ARENA_W, edgeY);
+            ctx.lineTo(padCenterX, landingPad.y);
+          } else {
+            const totalDist = (ARENA_W - rocket.x) + padCenterX;
+            const t = (ARENA_W - rocket.x) / (totalDist || 1);
+            const edgeY = rocket.y + (landingPad.y - rocket.y) * t;
+            ctx.moveTo(rocket.x, rocket.y);
+            ctx.lineTo(ARENA_W, edgeY);
+            ctx.moveTo(0, edgeY);
+            ctx.lineTo(padCenterX, landingPad.y);
+          }
+        } else {
+          ctx.moveTo(rocket.x, rocket.y);
+          ctx.lineTo(padCenterX, landingPad.y);
+        }
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();
@@ -4226,7 +4349,9 @@
 
       // Discretize continuous telemetry into states
       discretize(r, pad, asts) {
-        const dx = (pad.x + pad.width / 2) - r.x;
+        let dx = (pad.x + pad.width / 2) - r.x;
+        if (dx > ARENA_W / 2) dx -= ARENA_W;
+        else if (dx < -ARENA_W / 2) dx += ARENA_W;
         const dy = pad.y - r.y;
 
         // Bins:
@@ -4261,10 +4386,12 @@
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
         let tiltBin = Math.abs(angleDiff) < 0.22 ? 0 : (angleDiff > 0 ? 1 : -1);
 
-        // Nearest asteroid proximity
+        // Nearest asteroid proximity (wrap-aware)
         let astThreat = 0;
         for (const a of asts) {
-          if (Math.hypot(a.x - r.x, a.y - r.y) < 95) {
+          let adx = Math.abs(a.x - r.x);
+          if (adx > ARENA_W / 2) adx = ARENA_W - adx;
+          if (Math.hypot(adx, a.y - r.y) < 95) {
             astThreat = 1;
             break;
           }
@@ -4313,7 +4440,9 @@
       computeStepReward(r, pad, asts, prevDist, currentDist, state = null) {
         const padCenterX = pad.x + pad.width / 2;
         const dyToPad = pad.y - r.y;
-        const dxToPad = padCenterX - r.x;
+        let dxToPad = padCenterX - r.x;
+        if (dxToPad > ARENA_W / 2) dxToPad -= ARENA_W;
+        else if (dxToPad < -ARENA_W / 2) dxToPad += ARENA_W;
 
         let reward = 0;
 
@@ -4359,10 +4488,12 @@
           }
         }
 
-        // 9. Gravity Anomaly Slingshot Traversal Bonus
+        // 9. Gravity Anomaly Slingshot Traversal Bonus (wrap-aware)
         if (typeof gravityAnomalies !== 'undefined' && gravityAnomalies && gravityAnomalies.length > 0) {
           for (const anom of gravityAnomalies) {
-            const d = Math.hypot(anom.x - r.x, anom.y - r.y);
+            let adx = Math.abs(anom.x - r.x);
+            if (adx > ARENA_W / 2) adx = ARENA_W - adx;
+            const d = Math.hypot(adx, anom.y - r.y);
             if (d > 35 && d < 130 && r.vy > 0 && r.vy < 3.0) {
               reward += 0.45; // Orbital sling navigation without hull breach
               break;
@@ -4564,8 +4695,8 @@
             simR.x += simR.vx;
             simR.y += simR.vy;
 
-            if (simR.x < 15) { simR.x = 15; simR.vx = Math.abs(simR.vx) * 0.5; }
-            if (simR.x > ARENA_W - 15) { simR.x = ARENA_W - 15; simR.vx = -Math.abs(simR.vx) * 0.5; }
+            if (simR.x < 0) simR.x += ARENA_W;
+            else if (simR.x >= ARENA_W) simR.x -= ARENA_W;
             if (simR.y < 15) { simR.y = 15; simR.vy = Math.max(0, simR.vy); }
 
             if (simR.y >= simPad.y || simR.y >= ARENA_H - 35) break;
@@ -4594,7 +4725,9 @@
 
       // Feature Vector: [norm_dx, norm_dy, norm_vx, norm_vy, norm_tilt, threat]
       computeEmbedding(r, pad, asts) {
-        const dx = (pad.x + pad.width / 2) - r.x;
+        let dx = (pad.x + pad.width / 2) - r.x;
+        if (dx > ARENA_W / 2) dx -= ARENA_W;
+        else if (dx < -ARENA_W / 2) dx += ARENA_W;
         const dy = pad.y - r.y;
         let angleDiff = r.angle - (-Math.PI / 2);
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -4602,7 +4735,9 @@
 
         let threat = 0;
         for (const a of asts) {
-          if (Math.hypot(a.x - r.x, a.y - r.y) < 110) {
+          let adx = Math.abs(a.x - r.x);
+          if (adx > ARENA_W / 2) adx = ARENA_W - adx;
+          if (Math.hypot(adx, a.y - r.y) < 110) {
             threat = 1.0;
             break;
           }
@@ -4720,7 +4855,10 @@
       ollamaPending = true;
       lastOllamaTime = Date.now();
 
-      const dx = Math.round((pad.x + pad.width / 2) - r.x);
+      let rawDx = (pad.x + pad.width / 2) - r.x;
+      if (rawDx > ARENA_W / 2) rawDx -= ARENA_W;
+      else if (rawDx < -ARENA_W / 2) rawDx += ARENA_W;
+      const dx = Math.round(rawDx);
       const dy = Math.round(pad.y - r.y);
       const vy = Number(r.vy.toFixed(1));
       const vx = Number(r.vx.toFixed(1));
@@ -4786,7 +4924,9 @@
     function computeHeuristicAction(r, pad) {
       const padCenterX = pad.x + pad.width / 2;
       const padTopY = pad.y;
-      const dxToPad = padCenterX - r.x;
+      let dxToPad = padCenterX - r.x;
+      if (dxToPad > ARENA_W / 2) dxToPad -= ARENA_W;
+      else if (dxToPad < -ARENA_W / 2) dxToPad += ARENA_W;
       const dyToPad = padTopY - r.y;
 
       let targetVx = Math.sign(dxToPad) * Math.min(2.8, Math.abs(dxToPad) * 0.015);
@@ -4834,10 +4974,12 @@
       evaluate(r, pad, asts) {
         const alt = Math.max(0, pad.y - r.y);
 
-        // Scan asteroid collision envelope
+        // Scan asteroid collision envelope (wrap-aware)
         let nearestAstDist = Infinity;
         for (const a of asts) {
-          const d = Math.hypot(a.x - r.x, a.y - r.y);
+          let dx = Math.abs(a.x - r.x);
+          if (dx > ARENA_W / 2) dx = ARENA_W - dx;
+          const d = Math.hypot(dx, a.y - r.y);
           if (d < nearestAstDist) nearestAstDist = d;
         }
 
@@ -5171,7 +5313,19 @@
         simVy *= 0.998;
         simX += simVx;
         simY += simVy;
-        ctx.lineTo(simX, simY);
+        if (simX < 0) {
+          simX += ARENA_W;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(simX, simY);
+        } else if (simX >= ARENA_W) {
+          simX -= ARENA_W;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(simX, simY);
+        } else {
+          ctx.lineTo(simX, simY);
+        }
       }
 
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
@@ -5214,10 +5368,12 @@
           }
         }
 
-        // 2. STALL DETECTOR IN FLIGHT: Detect zero movement or boundary freeze
+        // 2. STALL DETECTOR IN FLIGHT: Detect zero movement or boundary freeze (wrap-aware)
         if (gameState === 'PLAYING' && !rocket.crashed && !rocket.landed) {
           if (this.prevRocketX !== null) {
-            const motionDelta = Math.hypot(rocket.x - this.prevRocketX, rocket.y - this.prevRocketY);
+            let dxMotion = Math.abs(rocket.x - this.prevRocketX);
+            if (dxMotion > ARENA_W / 2) dxMotion = ARENA_W - dxMotion;
+            const motionDelta = Math.hypot(dxMotion, rocket.y - this.prevRocketY);
             if (motionDelta < 0.2) {
               this.stallDetectTime++;
               if (this.stallDetectTime >= 3) {
