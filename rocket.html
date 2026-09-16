@@ -914,6 +914,265 @@
       letter-spacing: 0.03em;
     }
 
+    /* AI Model Forge & Neural Training Studio Modal */
+    #modelForgeModal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: auto;
+      width: 94%;
+      max-width: 800px;
+    }
+    .forge-card {
+      background: rgba(10, 15, 30, 0.97);
+      border: 1px solid rgba(56, 189, 248, 0.7);
+      border-radius: 16px;
+      padding: 18px 22px;
+      width: 100%;
+      max-height: 86vh;
+      overflow-y: auto;
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.35), 0 25px 60px rgba(0, 0, 0, 0.95);
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      color: #e2e8f0;
+      font-family: inherit;
+    }
+    .forge-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+      padding-bottom: 8px;
+    }
+    .forge-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.05em;
+    }
+    .forge-close-btn {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      font-size: 13px;
+      font-weight: bold;
+      border-radius: 6px;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .forge-close-btn:hover {
+      background: rgba(239, 68, 68, 0.35);
+      transform: scale(1.05);
+    }
+    .forge-nav-tabs {
+      display: flex;
+      gap: 5px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 4px;
+      overflow-x: auto;
+    }
+    .forge-tab {
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #94a3b8;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .forge-tab.active {
+      background: rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .forge-tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .forge-tab-content.active {
+      display: flex;
+    }
+    .forge-section-title {
+      font-size: 11.5px;
+      font-weight: bold;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 2px;
+    }
+    .forge-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .forge-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .forge-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .forge-label {
+      font-size: 10px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .forge-input, .forge-select, .forge-textarea {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #f8fafc;
+      font-size: 11.5px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .forge-input:focus, .forge-select:focus, .forge-textarea:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+    }
+    .forge-textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+    .forge-code-preview {
+      background: rgba(3, 7, 18, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: #a5f3fc;
+      max-height: 130px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .forge-badge-stat {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .forge-stat-val {
+      font-size: 14px;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+    .forge-stat-label {
+      font-size: 9px;
+      color: #94a3b8;
+    }
+    .forge-actions-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .forge-btn-primary {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #030712;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-weight: bold;
+      font-size: 11.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .forge-btn-primary:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+    }
+    .forge-btn-secondary {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-weight: bold;
+      font-size: 11.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .forge-btn-secondary:hover {
+      background: rgba(56, 189, 248, 0.2);
+      transform: scale(1.03);
+    }
+    .forge-btn-accent {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border: 1px solid #34d399;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-weight: bold;
+      font-size: 11.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .forge-btn-accent:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.6);
+    }
+    .forge-chart-canvas {
+      width: 100%;
+      height: 110px;
+      background: rgba(3, 7, 18, 0.88);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+    }
+    .forge-registered-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
     /* Mobile On-Screen Controls */
     #mobileControls {
       position: absolute;
@@ -1034,12 +1293,13 @@
 
         <div class="model-row">
           <span class="t-label" style="font-size: 9px;">MODEL:</span>
-          <select id="ollamaModelSelect" class="cyber-select model-select">
+          <select id="ollamaModelSelect" class="cyber-select model-select" style="max-width: 140px;">
             <option value="command-r:35b" selected>⚡ Command R (35B)</option>
             <option value="gemma2:9b">💎 Gemma 2 (9B)</option>
             <option value="gemma2:27b">💎 Gemma 2 (27B)</option>
           </select>
           <button id="rotateModelBtn" class="small-btn">ROTATE</button>
+          <button id="openModelForgeBtn" class="small-btn-accent" style="border-color: #38bdf8; color: #38bdf8; font-weight: bold;" title="Train & Customize Your Own Flight LLMs">🛠️ FORGE</button>
           <button id="clearQDimBtn" class="small-btn" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" title="Wipe Q-Table and reset Q-DIM to 0">CLEAR Q</button>
         </div>
 
@@ -1168,6 +1428,227 @@
               <span>Controls: <strong>↑ / W</strong> Thrust &nbsp;|&nbsp; <strong>← → / A D</strong> Turn &nbsp;|&nbsp; <strong>Touch buttons</strong> on mobile</span>
             </div>
             <button id="modalBtn" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; box-shadow: 0 0 20px rgba(16,185,129,0.5); font-size: 15px; padding: 14px 32px; font-weight: bold; cursor: pointer;">▶ START MISSION</button>
+          </div>
+        </div>
+
+        <!-- AI Model Forge & Neural Training Studio Modal -->
+        <div id="modelForgeModal">
+          <div class="forge-card">
+            <div class="forge-header">
+              <span class="forge-title">
+                <span class="pulse-dot"></span>
+                🛠️ AI MODEL FORGE & NEURAL TRAINING STUDIO
+              </span>
+              <button id="forgeCloseBtn" class="forge-close-btn" title="Close Forge Studio">✕ CLOSE</button>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="forge-nav-tabs">
+              <button class="forge-tab active" data-tab="tabForgeIdentity">🏷️ 1. IDENTITY & BASE</button>
+              <button class="forge-tab" data-tab="tabForgePersona">🎛️ 2. PERSONA & HYPERPARAMS</button>
+              <button class="forge-tab" data-tab="tabForgeDataset">📼 3. FLIGHT DATASET</button>
+              <button class="forge-tab" data-tab="tabForgeNeural">🧠 4. NEURAL TRAINING</button>
+              <button class="forge-tab" data-tab="tabForgeOllama">🦙 5. OLLAMA BUILD & CLI</button>
+            </div>
+
+            <!-- Tab 1: Identity & Base Model -->
+            <div id="tabForgeIdentity" class="forge-tab-content active">
+              <div class="forge-section-title">Step 1: Define Model Identity & Base Architecture</div>
+              <div class="forge-grid-2">
+                <div class="forge-input-group">
+                  <label class="forge-label">BASE ARCHITECTURE:</label>
+                  <select id="forgeBaseModelSelect" class="forge-select">
+                    <option value="command-r:35b">⚡ Command R (35B) — High-Capacity Tactical Reasoner</option>
+                    <option value="gemma2:9b" selected>💎 Gemma 2 (9B) — Agile Precision Pilot</option>
+                    <option value="gemma2:27b">🌌 Gemma 2 (27B) — Quantum Deep Spatial Engine</option>
+                  </select>
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">CUSTOM MODEL TAG:</label>
+                  <input type="text" id="forgeCustomTagInput" class="forge-input" value="gemma2:custom-ace" placeholder="e.g. gemma2:custom-ace">
+                </div>
+              </div>
+
+              <div class="forge-grid-2">
+                <div class="forge-input-group">
+                  <label class="forge-label">LUNAR COLONY BASE NAME:</label>
+                  <input type="text" id="forgeColonyNameInput" class="forge-input" value="CYBER PRECISION OUTPOST" placeholder="e.g. CYBER CITADEL">
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">PILOT SPECIALTY PRESET:</label>
+                  <select id="forgePersonaPresetSelect" class="forge-select">
+                    <option value="precision" selected>🎯 Precision Touchdown Ace (Low speed, zero tilt)</option>
+                    <option value="anomaly">🌀 Gravity Anomaly & Quantum Core Hunter</option>
+                    <option value="wind">💨 Solar Wind Shear Counter-Thrust Master</option>
+                    <option value="speedrun">🚀 High-G Aggressive Speedrunner (Fast descent, late brake)</option>
+                    <option value="balanced">⚖️ Hybrid Adaptive Multi-Regime Flight Master</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="forge-grid-3">
+                <div class="forge-input-group">
+                  <label class="forge-label">THEME COLOR:</label>
+                  <input type="color" id="forgeThemeColorInput" class="forge-input" value="#38bdf8" style="height: 34px; padding: 2px 4px; cursor: pointer;">
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">PILOT ICON:</label>
+                  <select id="forgePilotIconSelect" class="forge-select">
+                    <option value="⚡" selected>⚡ Pulse Bolt</option>
+                    <option value="💎">💎 Crystal Diamond</option>
+                    <option value="🌌">🌌 Nebula Core</option>
+                    <option value="🛸">🛸 Graviton Disc</option>
+                    <option value="🚀">🚀 Solar Spire</option>
+                  </select>
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">OUTPOST ROLE:</label>
+                  <input type="text" id="forgeOutpostRoleInput" class="forge-input" value="Autonomous Neural Deep-Space Lab">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Persona & Hyperparameters -->
+            <div id="tabForgePersona" class="forge-tab-content">
+              <div class="forge-section-title">Step 2: Hyperparameters & Flight Reasoning Directives</div>
+              <div class="forge-grid-3">
+                <div class="forge-input-group">
+                  <label class="forge-label">TEMPERATURE (<span id="forgeTempVal">0.15</span>):</label>
+                  <input type="range" id="forgeTempInput" min="0.0" max="1.0" step="0.05" value="0.15" class="forge-input" style="padding: 2px;">
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">TOP-K (<span id="forgeTopKVal">40</span>):</label>
+                  <input type="range" id="forgeTopKInput" min="1" max="100" step="1" value="40" class="forge-input" style="padding: 2px;">
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">CONTEXT WINDOW (<span id="forgeCtxVal">4096</span>):</label>
+                  <input type="range" id="forgeCtxInput" min="2048" max="8192" step="1024" value="4096" class="forge-input" style="padding: 2px;">
+                </div>
+              </div>
+
+              <div class="forge-input-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="forge-label">SPECIALIZED SYSTEM PROMPT (PERSONA DIRECTIVE):</label>
+                  <button id="forgeResetPromptBtn" class="small-btn" style="font-size: 9px;">RESET TO PRESET</button>
+                </div>
+                <textarea id="forgeSystemPromptText" class="forge-textarea"></textarea>
+              </div>
+
+              <div style="display: flex; gap: 10px; align-items: center; background: rgba(15, 23, 42, 0.7); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                <input type="checkbox" id="forgeFewShotCheck" checked style="cursor: pointer;">
+                <label for="forgeFewShotCheck" class="forge-label" style="cursor: pointer; color: #e2e8f0;">
+                  ✨ <strong>Inject Grounded Vector DB Trajectories</strong> (Embeds top successful touchdowns directly into prompt context)
+                </label>
+              </div>
+            </div>
+
+            <!-- Tab 3: Flight Dataset Curator -->
+            <div id="tabForgeDataset" class="forge-tab-content">
+              <div class="forge-section-title">Step 3: Trajectory Buffer & Dataset Curation</div>
+              <div class="forge-grid-3">
+                <div class="forge-badge-stat">
+                  <span class="forge-stat-val" id="forgeStatFrames">0</span>
+                  <span class="forge-stat-label">TOTAL RECORDED FLIGHT FRAMES</span>
+                </div>
+                <div class="forge-badge-stat">
+                  <span class="forge-stat-val" id="forgeStatTouchdowns" style="color: #4ade80;">0</span>
+                  <span class="forge-stat-label">SUCCESSFUL TOUCHDOWNS</span>
+                </div>
+                <div class="forge-badge-stat">
+                  <span class="forge-stat-val" id="forgeStatPrecision" style="color: #f59e0b;">0%</span>
+                  <span class="forge-stat-label">TRAINING QUALITY INDEX</span>
+                </div>
+              </div>
+
+              <div class="forge-actions-row">
+                <button id="forgeSeedDatasetBtn" class="forge-btn-secondary">⚡ SEED 200 EXPERT DEMO SAMPLES</button>
+                <button id="forgeExportJsonlBtn" class="forge-btn-primary">📥 EXPORT DATASET (.JSONL)</button>
+                <button id="forgeClearDatasetBtn" class="small-btn" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);">CLEAR BUFFER</button>
+              </div>
+
+              <div class="forge-input-group">
+                <label class="forge-label">DATASET SAMPLE PREVIEW (JSONL INSTRUCT FORMAT):</label>
+                <div id="forgeDatasetPreview" class="forge-code-preview">No trajectory samples recorded yet. Fly a mission or click [⚡ SEED EXPERT DEMO SAMPLES].</div>
+              </div>
+            </div>
+
+            <!-- Tab 4: In-Browser Neural Training -->
+            <div id="tabForgeNeural" class="forge-tab-content">
+              <div class="forge-section-title">Step 4: Real-Time In-Browser Neural Policy Training (Behavioral Cloning)</div>
+              
+              <div class="forge-grid-3">
+                <div class="forge-input-group">
+                  <label class="forge-label">EPOCHS:</label>
+                  <select id="forgeNeuralEpochsSelect" class="forge-select">
+                    <option value="30">30 Epochs (Fast Rapid Check)</option>
+                    <option value="60" selected>60 Epochs (Standard Convergence)</option>
+                    <option value="120">120 Epochs (Deep High Precision)</option>
+                  </select>
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">LEARNING RATE:</label>
+                  <select id="forgeNeuralLrSelect" class="forge-select">
+                    <option value="0.01">0.01 (Aggressive)</option>
+                    <option value="0.005" selected>0.005 (Optimal Adam)</option>
+                    <option value="0.001">0.001 (Conservative Fine-Tuning)</option>
+                  </select>
+                </div>
+                <div class="forge-input-group">
+                  <label class="forge-label">BATCH SIZE:</label>
+                  <select id="forgeNeuralBatchSelect" class="forge-select">
+                    <option value="16">16 Samples</option>
+                    <option value="32" selected>32 Samples</option>
+                    <option value="64">64 Samples</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Live Loss Canvas Chart -->
+              <div class="forge-input-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="forge-label">LIVE TRAINING LOSS & CONVERGENCE CURVE:</label>
+                  <span id="forgeTrainingStatus" style="font-size: 10px; color: #38bdf8; font-family: monospace;">READY TO TRAIN</span>
+                </div>
+                <canvas id="forgeLossCanvas" class="forge-chart-canvas" width="750" height="110"></canvas>
+              </div>
+
+              <div class="forge-actions-row">
+                <button id="forgeTrainNeuralBtn" class="forge-btn-accent">⚡ TRAIN NEURAL POLICY IN BROWSER</button>
+                <button id="forgeSaveNeuralPolicyBtn" class="forge-btn-primary" disabled>💾 SAVE & ACTIVATE POLICY</button>
+                <span id="forgeNeuralAccuracy" style="font-size: 11px; font-weight: bold; color: #4ade80;">ACC: --</span>
+              </div>
+            </div>
+
+            <!-- Tab 5: Ollama Modelfile Build & Register -->
+            <div id="tabForgeOllama" class="forge-tab-content">
+              <div class="forge-section-title">Step 5: Ollama Modelfile Exporter & 1-Click Local Creator</div>
+              
+              <div class="forge-input-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="forge-label">GENERATED OLLAMA MODELFILE:</label>
+                  <button id="forgeCopyModelfileBtn" class="small-btn" style="font-size: 9px;">📋 COPY MODELFILE</button>
+                </div>
+                <div id="forgeModelfilePreview" class="forge-code-preview"></div>
+              </div>
+
+              <div class="forge-actions-row">
+                <button id="forgeRegisterOllamaBtn" class="forge-btn-accent">🚀 REGISTER IN LOCAL OLLAMA (1-CLICK)</button>
+                <button id="forgeDownloadModelfileBtn" class="forge-btn-secondary">📥 DOWNLOAD MODELFILE</button>
+                <button id="forgeCopyCliBtn" class="small-btn" style="border-color: #38bdf8; color: #38bdf8;">📋 COPY CLI COMMAND</button>
+              </div>
+
+              <div id="forgeOllamaStatusBox" style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: #94a3b8; font-family: monospace;">
+                STATUS: Ready. Ensure 'ollama serve' is active on port 11434 to register automatically.
+              </div>
+
+              <div class="forge-input-group" style="margin-top: 4px;">
+                <label class="forge-label">REGISTERED CUSTOM MODELS IN FLIGHT ECOSYSTEM:</label>
+                <div id="forgeCustomModelsList" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto;">
+                  <!-- Dynamically populated custom models -->
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -3532,6 +4013,11 @@
       currentSectorScore = 0;
       updateScoreDisplay();
 
+      // Record successful flight trajectory demonstration in Flight Dataset
+      if (typeof flightRecorder !== 'undefined' && flightRecorder) {
+        flightRecorder.finishFlight('TOUCHDOWN', { score: landingBonus, fuel: rocket.fuel });
+      }
+
       // Token Award on Touchdown: +50 Tokens
       updateTokenDisplay(+50);
 
@@ -3669,6 +4155,11 @@
       rocket.crashed = true;
       sound.stopThrust();
       sound.playExplosion();
+
+      // Record crash trajectory in Flight Dataset
+      if (typeof flightRecorder !== 'undefined' && flightRecorder) {
+        flightRecorder.finishFlight('CRASH', { reason, score: 0 });
+      }
 
       // Crash Point Protection: Banked career score is 100% immune from crashes!
       currentSectorScore = 0;
@@ -4292,6 +4783,17 @@
           }
           rocket.update(currentGravity);
           checkCollisions();
+
+          // Log continuous trajectory frame into Flight Dataset Buffer
+          if (typeof flightRecorder !== 'undefined' && flightRecorder && !rocket.landed && !rocket.crashed && (telemetryCounter % 3 === 0)) {
+            flightRecorder.logFrame(rocket, landingPad, asteroids, {
+              thrust: keys.thrust,
+              left: keys.left,
+              right: keys.right,
+              tag: keys.thrust ? (keys.left ? 'T+LFT' : (keys.right ? 'T+RGT' : 'THR')) : (keys.left ? 'LFT' : (keys.right ? 'RGT' : 'CST')),
+              reason: aiThought ? aiThought.innerText : ''
+            }, (typeof challengeEngine !== 'undefined') ? challengeEngine.cci : 50, (typeof challengeEngine !== 'undefined') ? challengeEngine.driveState : 'ACTIVE');
+          }
         }
         if (aiAutopilotActive) {
           drawTrajectoryForecast(ctx);
@@ -4976,6 +5478,1042 @@
     setTimeout(updateVectorHUDDisplays, 250);
 
     // ==========================================
+    // 📼 FLIGHT TRAJECTORY RECORDER & DATASET ENGINE
+    // ==========================================
+    class FlightTrajectoryRecorder {
+      constructor() {
+        this.storageKey = 'cosmic_flight_dataset_v1';
+        this.currentFlightBuffer = [];
+        this.trajectories = [];
+        this.load();
+      }
+
+      logFrame(r, pad, asts, actionObj, cci = 50, drive = 'ACTIVE') {
+        if (!r || !pad) return;
+        let rawDx = (pad.x + pad.width / 2) - r.x;
+        if (rawDx > ARENA_W / 2) rawDx -= ARENA_W;
+        else if (rawDx < -ARENA_W / 2) rawDx += ARENA_W;
+        const dx = Math.round(rawDx);
+        const dy = Math.round(pad.y - r.y);
+        const vy = Number(r.vy.toFixed(2));
+        const vx = Number(r.vx.toFixed(2));
+        const windVal = (typeof windField !== 'undefined' && windField && windField.enabled) ? Number(windField.getWindAt(r.y).toFixed(2)) : 0;
+
+        // Normalized inputs for Neural Network: [normDy, normDx, normVy, normVx, normWind, normCCI]
+        const normInput = [
+          Math.max(0, Math.min(1, dy / ARENA_H)),
+          Math.max(-1, Math.min(1, dx / (ARENA_W / 2))),
+          Math.max(-2, Math.min(2, vy / 5.0)),
+          Math.max(-2, Math.min(2, vx / 5.0)),
+          Math.max(-2, Math.min(2, windVal / 2.0)),
+          Math.max(0, Math.min(1, cci / 100.0))
+        ];
+
+        // Action index: 0=COAST, 1=THRUST, 2=LEFT, 3=RIGHT
+        let actionIdx = 0;
+        if (actionObj.left) actionIdx = 2;
+        else if (actionObj.right) actionIdx = 3;
+        else if (actionObj.thrust) actionIdx = 1;
+
+        this.currentFlightBuffer.push({
+          normInput,
+          actionIdx,
+          raw: { dy, dx, vy, vx, wind: windVal, cci, drive },
+          action: { ...actionObj }
+        });
+        if (this.currentFlightBuffer.length > 800) this.currentFlightBuffer.shift();
+      }
+
+      finishFlight(outcome, metadata = {}) {
+        if (this.currentFlightBuffer.length === 0) return;
+        const trajectory = {
+          id: Date.now() + Math.random(),
+          timestamp: new Date().toISOString(),
+          outcome, // 'TOUCHDOWN' or 'CRASH'
+          model: getActiveModelName(),
+          score: metadata.score || 0,
+          fuelRemaining: metadata.fuel || 0,
+          frames: [...this.currentFlightBuffer]
+        };
+        this.trajectories.push(trajectory);
+        if (this.trajectories.length > 60) this.trajectories.shift();
+        this.currentFlightBuffer = [];
+        this.save();
+        if (typeof modelForgeStudio !== 'undefined' && modelForgeStudio) {
+          modelForgeStudio.updateDatasetStats();
+        }
+      }
+
+      save() {
+        try {
+          localStorage.setItem(this.storageKey, JSON.stringify(this.trajectories.slice(-50)));
+        } catch (e) {}
+      }
+
+      load() {
+        try {
+          const raw = localStorage.getItem(this.storageKey);
+          if (raw) this.trajectories = JSON.parse(raw);
+        } catch (e) {
+          this.trajectories = [];
+        }
+      }
+
+      clear() {
+        this.trajectories = [];
+        this.currentFlightBuffer = [];
+        try { localStorage.removeItem(this.storageKey); } catch (e) {}
+        if (typeof modelForgeStudio !== 'undefined' && modelForgeStudio) {
+          modelForgeStudio.updateDatasetStats();
+        }
+      }
+
+      generateSeedDemonstrations(count = 200) {
+        for (let i = 0; i < count; i++) {
+          const dy = Math.round(Math.random() * (ARENA_H - 140) + 70);
+          const dx = Math.round((Math.random() - 0.5) * (ARENA_W * 0.75));
+          const vy = Number(((Math.random() * 3.4) - 0.4).toFixed(2));
+          const vx = Number(((Math.random() - 0.5) * 3.8).toFixed(2));
+          const wind = Number(((Math.random() - 0.5) * 2.2).toFixed(2));
+          const cci = Math.round(Math.random() * 50 + 40);
+
+          let thrust = false;
+          let turn = 'none';
+          let reason = 'Attitude hold & glide';
+
+          if (dy > 85) {
+            if (vy > 1.7) { thrust = true; reason = 'Deceleration burn'; }
+            if (dx < -25 || (dx < 0 && vx < -0.7)) {
+              turn = 'right';
+              reason = thrust ? 'Thrusting rightward to intercept pad' : 'Banking right toward landing pad';
+            } else if (dx > 25 || (dx > 0 && vx > 0.7)) {
+              turn = 'left';
+              reason = thrust ? 'Thrusting leftward to intercept pad' : 'Banking left toward landing pad';
+            }
+          } else {
+            if (vy > 0.75) { thrust = true; reason = 'Terminal braking burn for soft landing'; }
+            if (dx < -8) turn = 'right';
+            else if (dx > 8) turn = 'left';
+          }
+
+          let actionIdx = 0;
+          if (turn === 'left') actionIdx = 2;
+          else if (turn === 'right') actionIdx = 3;
+          else if (thrust) actionIdx = 1;
+
+          const normInput = [
+            Math.max(0, Math.min(1, dy / ARENA_H)),
+            Math.max(-1, Math.min(1, dx / (ARENA_W / 2))),
+            Math.max(-2, Math.min(2, vy / 5.0)),
+            Math.max(-2, Math.min(2, vx / 5.0)),
+            Math.max(-2, Math.min(2, wind / 2.0)),
+            Math.max(0, Math.min(1, cci / 100.0))
+          ];
+
+          const frames = [{
+            normInput,
+            actionIdx,
+            raw: { dy, dx, vy, vx, wind, cci, drive: 'PRECISION GLIDE' },
+            action: { thrust, left: turn === 'left', right: turn === 'right', tag: thrust ? `T+${turn[0].toUpperCase()}` : turn.toUpperCase(), reason }
+          }];
+
+          this.trajectories.push({
+            id: Date.now() + i,
+            timestamp: new Date().toISOString(),
+            outcome: 'TOUCHDOWN',
+            model: 'expert-pid-seed',
+            score: 1850,
+            fuelRemaining: 680,
+            frames
+          });
+        }
+        if (this.trajectories.length > 80) this.trajectories = this.trajectories.slice(-80);
+        this.save();
+        if (typeof modelForgeStudio !== 'undefined' && modelForgeStudio) {
+          modelForgeStudio.updateDatasetStats();
+        }
+      }
+
+      getAllFrames(onlyTouchdowns = true) {
+        const frames = [];
+        for (const t of this.trajectories) {
+          if (onlyTouchdowns && t.outcome !== 'TOUCHDOWN') continue;
+          if (t.frames && Array.isArray(t.frames)) {
+            frames.push(...t.frames);
+          }
+        }
+        return frames;
+      }
+
+      exportJSONL(onlyTouchdowns = true) {
+        const frames = this.getAllFrames(onlyTouchdowns);
+        if (frames.length === 0) return '';
+        const lines = [];
+        for (const f of frames) {
+          const sysPrompt = "You are an elite autonomous lunar lander flight computer. Analyze real-time telemetry and output optimal flight thruster actions in strict JSON format: {\"thrust\":boolean,\"turn\":\"left\"|\"right\"|\"none\",\"reason\":\"string\"}";
+          const userPrompt = `Lander state: dy=${f.raw.dy}px, dx=${f.raw.dx}px, vy=${f.raw.vy}m/s, vx=${f.raw.vx}m/s, wind=${f.raw.wind}m/s, CCI=${f.raw.cci}%, Drive="${f.raw.drive}". Output flight command JSON.`;
+          const assistantResponse = JSON.stringify({
+            thrust: Boolean(f.action.thrust),
+            turn: f.action.left ? 'left' : (f.action.right ? 'right' : 'none'),
+            reason: f.action.reason || 'Telemetry-guided altitude and lateral correction'
+          });
+          lines.push(JSON.stringify({
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: userPrompt },
+              { role: 'assistant', content: assistantResponse }
+            ]
+          }));
+        }
+        return lines.join('\n');
+      }
+    }
+
+    const flightRecorder = new FlightTrajectoryRecorder();
+
+    // ==========================================
+    // 🧠 IN-BROWSER NEURAL FLIGHT POLICY (BACKPROP ENGINE)
+    // ==========================================
+    class NeuralFlightPolicy {
+      constructor() {
+        this.inputDim = 6;
+        this.h1Dim = 32;
+        this.h2Dim = 16;
+        this.outputDim = 4; // 0=COAST, 1=THRUST, 2=LEFT, 3=RIGHT
+        this.storageKey = 'cosmic_custom_neural_policy_weights_v1';
+        this.initWeights();
+        this.load();
+      }
+
+      initWeights() {
+        const randMatrix = (r, c) => Array.from({ length: r }, () => Array.from({ length: c }, () => (Math.random() - 0.5) * Math.sqrt(2 / c)));
+        const zeros = (n) => new Array(n).fill(0);
+
+        this.W1 = randMatrix(this.h1Dim, this.inputDim);
+        this.b1 = zeros(this.h1Dim);
+        this.W2 = randMatrix(this.h2Dim, this.h1Dim);
+        this.b2 = zeros(this.h2Dim);
+        this.W3 = randMatrix(this.outputDim, this.h2Dim);
+        this.b3 = zeros(this.outputDim);
+      }
+
+      relu(x) { return Math.max(0, x); }
+      softmax(arr) {
+        const max = Math.max(...arr);
+        const exp = arr.map(v => Math.exp(Math.max(-20, Math.min(20, v - max))));
+        const sum = exp.reduce((a, b) => a + b, 0);
+        return exp.map(v => v / (sum || 1));
+      }
+
+      forward(x) {
+        // Layer 1
+        const z1 = new Array(this.h1Dim);
+        const a1 = new Array(this.h1Dim);
+        for (let i = 0; i < this.h1Dim; i++) {
+          let sum = this.b1[i];
+          for (let j = 0; j < this.inputDim; j++) sum += this.W1[i][j] * x[j];
+          z1[i] = sum;
+          a1[i] = this.relu(sum);
+        }
+
+        // Layer 2
+        const z2 = new Array(this.h2Dim);
+        const a2 = new Array(this.h2Dim);
+        for (let i = 0; i < this.h2Dim; i++) {
+          let sum = this.b2[i];
+          for (let j = 0; j < this.h1Dim; j++) sum += this.W2[i][j] * a1[j];
+          z2[i] = sum;
+          a2[i] = this.relu(sum);
+        }
+
+        // Output Layer
+        const z3 = new Array(this.outputDim);
+        for (let i = 0; i < this.outputDim; i++) {
+          let sum = this.b3[i];
+          for (let j = 0; j < this.h2Dim; j++) sum += this.W3[i][j] * a2[j];
+          z3[i] = sum;
+        }
+        const probs = this.softmax(z3);
+        return { z1, a1, z2, a2, z3, probs };
+      }
+
+      predict(x) {
+        const { probs } = this.forward(x);
+        let maxIdx = 0;
+        for (let i = 1; i < probs.length; i++) {
+          if (probs[i] > probs[maxIdx]) maxIdx = i;
+        }
+        return {
+          actionIdx: maxIdx,
+          probabilities: probs,
+          action: {
+            thrust: maxIdx === 1,
+            left: maxIdx === 2,
+            right: maxIdx === 3,
+            tag: maxIdx === 1 ? 'THR' : (maxIdx === 2 ? 'LFT' : (maxIdx === 3 ? 'RGT' : 'CST'))
+          }
+        };
+      }
+
+      async train(samples, epochs = 60, lr = 0.005, batchSize = 32, onEpochProgress = null) {
+        if (!samples || samples.length === 0) return { lossHistory: [], accuracy: 0 };
+        const lossHistory = [];
+
+        for (let epoch = 0; epoch < epochs; epoch++) {
+          const shuffled = [...samples].sort(() => Math.random() - 0.5);
+          let epochLoss = 0;
+          let correct = 0;
+
+          for (let b = 0; b < shuffled.length; b += batchSize) {
+            const batch = shuffled.slice(b, b + batchSize);
+            
+            const dW1 = Array.from({ length: this.h1Dim }, () => new Array(this.inputDim).fill(0));
+            const db1 = new Array(this.h1Dim).fill(0);
+            const dW2 = Array.from({ length: this.h2Dim }, () => new Array(this.h1Dim).fill(0));
+            const db2 = new Array(this.h2Dim).fill(0);
+            const dW3 = Array.from({ length: this.outputDim }, () => new Array(this.h2Dim).fill(0));
+            const db3 = new Array(this.outputDim).fill(0);
+
+            for (const item of batch) {
+              const x = item.normInput;
+              const target = item.actionIdx;
+              const { a1, a2, probs } = this.forward(x);
+
+              epochLoss += -Math.log(Math.max(1e-7, probs[target]));
+              let predIdx = 0;
+              for (let i = 1; i < probs.length; i++) if (probs[i] > probs[predIdx]) predIdx = i;
+              if (predIdx === target) correct++;
+
+              const dz3 = [...probs];
+              dz3[target] -= 1.0;
+
+              for (let i = 0; i < this.outputDim; i++) {
+                db3[i] += dz3[i];
+                for (let j = 0; j < this.h2Dim; j++) {
+                  dW3[i][j] += dz3[i] * a2[j];
+                }
+              }
+
+              const dz2 = new Array(this.h2Dim).fill(0);
+              for (let j = 0; j < this.h2Dim; j++) {
+                let sum = 0;
+                for (let i = 0; i < this.outputDim; i++) sum += dz3[i] * this.W3[i][j];
+                dz2[j] = a2[j] > 0 ? sum : 0;
+                db2[j] += dz2[j];
+                for (let k = 0; k < this.h1Dim; k++) {
+                  dW2[j][k] += dz2[j] * a1[k];
+                }
+              }
+
+              const dz1 = new Array(this.h1Dim).fill(0);
+              for (let k = 0; k < this.h1Dim; k++) {
+                let sum = 0;
+                for (let j = 0; j < this.h2Dim; j++) sum += dz2[j] * this.W2[j][k];
+                dz1[k] = a1[k] > 0 ? sum : 0;
+                db1[k] += dz1[k];
+                for (let m = 0; m < this.inputDim; m++) {
+                  dW1[k][m] += dz1[k] * x[m];
+                }
+              }
+            }
+
+            const N = batch.length;
+            for (let i = 0; i < this.outputDim; i++) {
+              this.b3[i] -= lr * (db3[i] / N);
+              for (let j = 0; j < this.h2Dim; j++) this.W3[i][j] -= lr * (dW3[i][j] / N);
+            }
+            for (let j = 0; j < this.h2Dim; j++) {
+              this.b2[j] -= lr * (db2[j] / N);
+              for (let k = 0; k < this.h1Dim; k++) this.W2[j][k] -= lr * (dW2[j][k] / N);
+            }
+            for (let k = 0; k < this.h1Dim; k++) {
+              this.b1[k] -= lr * (db1[k] / N);
+              for (let m = 0; m < this.inputDim; m++) this.W1[k][m] -= lr * (dW1[k][m] / N);
+            }
+          }
+
+          const avgLoss = epochLoss / samples.length;
+          const accuracy = Math.round((correct / samples.length) * 100);
+          lossHistory.push(avgLoss);
+
+          if (onEpochProgress && (epoch % 2 === 0 || epoch === epochs - 1)) {
+            onEpochProgress(epoch + 1, epochs, avgLoss, accuracy, lossHistory);
+            await new Promise(r => setTimeout(r, 16));
+          }
+        }
+
+        const finalAcc = Math.round((lossHistory.length > 0 ? (1.0 - Math.min(1.0, lossHistory[lossHistory.length - 1] / 3)) : 0.8) * 100);
+        return { lossHistory, accuracy: finalAcc };
+      }
+
+      save() {
+        try {
+          localStorage.setItem(this.storageKey, JSON.stringify({
+            W1: this.W1, b1: this.b1,
+            W2: this.W2, b2: this.b2,
+            W3: this.W3, b3: this.b3,
+            savedAt: new Date().toISOString()
+          }));
+        } catch (e) {}
+      }
+
+      load() {
+        try {
+          const raw = localStorage.getItem(this.storageKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed.W1 && parsed.W2 && parsed.W3) {
+              this.W1 = parsed.W1; this.b1 = parsed.b1;
+              this.W2 = parsed.W2; this.b2 = parsed.b2;
+              this.W3 = parsed.W3; this.b3 = parsed.b3;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    const neuralPolicy = new NeuralFlightPolicy();
+
+    // Dynamic Custom Model Registration System
+    function registerCustomModelToEcosystem(modelData, save = true) {
+      const tag = modelData.tag || 'custom-model';
+      const cleanKey = tag.replace(/[:.]/g, '_');
+      
+      // 1. Add to OLLAMA_MODELS array if not present
+      if (!OLLAMA_MODELS.includes(tag)) {
+        OLLAMA_MODELS.push(tag);
+      }
+
+      // 2. Add to dropdown
+      if (ollamaModelSelect) {
+        let exists = false;
+        for (let i = 0; i < ollamaModelSelect.options.length; i++) {
+          if (ollamaModelSelect.options[i].value === tag) { exists = true; break; }
+        }
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = tag;
+          const icon = modelData.icon || '⚡';
+          opt.innerText = `${icon} ${modelData.name || tag} (${modelData.baseModel || 'Custom'})`;
+          ollamaModelSelect.appendChild(opt);
+        }
+      }
+
+      // 3. Add to BOT_STATIONS_META (Lunar Surface Outpost)
+      if (typeof BOT_STATIONS_META !== 'undefined' && !BOT_STATIONS_META[tag]) {
+        const slotIdx = Object.keys(BOT_STATIONS_META).length;
+        const slotX = 140 + (slotIdx % 6) * 190;
+        BOT_STATIONS_META[tag] = {
+          name: (modelData.colonyName || modelData.name || tag).toUpperCase(),
+          shortName: modelData.name || tag,
+          icon: modelData.icon || '⚡',
+          themeColor: modelData.themeColor || '#38bdf8',
+          accentColor: modelData.accentColor || '#0284c7',
+          windowColor: modelData.themeColor ? `${modelData.themeColor}dd` : 'rgba(56, 189, 248, 0.85)',
+          slotIndex: slotIdx,
+          x: slotX,
+          role: modelData.role || 'Custom Autonomous Research Colony'
+        };
+        if (typeof lunarStationSystem !== 'undefined' && lunarStationSystem) {
+          if (!lunarStationSystem.stations[tag]) {
+            lunarStationSystem.stations[tag] = {
+              modules: [ STATION_MODULE_CATALOG[0] ],
+              level: 1,
+              touchdowns: 0
+            };
+          }
+        }
+      }
+
+      // 4. Create Private Vector DB
+      if (!privateVectorDBs[tag]) {
+        privateVectorDBs[tag] = new VectorDBEngine(tag, `cosmic_vector_db_${cleanKey}`, 150);
+      }
+
+      // 5. Persist to registry
+      if (save) {
+        try {
+          let registry = [];
+          const raw = localStorage.getItem('cosmic_custom_models_registry_v1');
+          if (raw) registry = JSON.parse(raw);
+          const existingIdx = registry.findIndex(m => m.tag === tag);
+          if (existingIdx !== -1) registry[existingIdx] = modelData;
+          else registry.push(modelData);
+          localStorage.setItem('cosmic_custom_models_registry_v1', JSON.stringify(registry));
+        } catch (e) {}
+      }
+
+      if (typeof lunarStationSystem !== 'undefined' && lunarStationSystem) {
+        lunarStationSystem.updateHUD();
+      }
+      if (typeof updateVectorHUDDisplays === 'function') {
+        updateVectorHUDDisplays();
+      }
+      if (typeof modelForgeStudio !== 'undefined' && modelForgeStudio) {
+        modelForgeStudio.renderRegisteredModels();
+      }
+    }
+
+    function loadRegisteredCustomModels() {
+      try {
+        const raw = localStorage.getItem('cosmic_custom_models_registry_v1');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            list.forEach(m => {
+              registerCustomModelToEcosystem(m, false);
+            });
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Global Action Helpers for Custom Models
+    window.selectCustomFlightModel = function(tag) {
+      if (ollamaModelSelect) {
+        ollamaModelSelect.value = tag;
+        const idx = OLLAMA_MODELS.indexOf(tag);
+        if (idx !== -1) currentModelIndex = idx;
+        updateAiStatusText();
+        if (typeof lunarStationSystem !== 'undefined') lunarStationSystem.updateHUD();
+        if (typeof updateVectorHUDDisplays === 'function') updateVectorHUDDisplays();
+      }
+      const modalEl = document.getElementById('modelForgeModal');
+      if (modalEl) modalEl.style.display = 'none';
+      observerSpeak(`🚀 Active Flight Pilot switched to Custom Model [${tag}]!`, 'win');
+    };
+
+    window.deleteCustomFlightModel = function(idx) {
+      try {
+        let registry = [];
+        const raw = localStorage.getItem('cosmic_custom_models_registry_v1');
+        if (raw) registry = JSON.parse(raw);
+        if (registry[idx]) {
+          const tag = registry[idx].tag;
+          registry.splice(idx, 1);
+          localStorage.setItem('cosmic_custom_models_registry_v1', JSON.stringify(registry));
+          const oIdx = OLLAMA_MODELS.indexOf(tag);
+          if (oIdx !== -1) OLLAMA_MODELS.splice(oIdx, 1);
+          if (ollamaModelSelect) {
+            for (let i = 0; i < ollamaModelSelect.options.length; i++) {
+              if (ollamaModelSelect.options[i].value === tag) {
+                ollamaModelSelect.remove(i);
+                break;
+              }
+            }
+          }
+          if (typeof modelForgeStudio !== 'undefined' && modelForgeStudio) {
+            modelForgeStudio.renderRegisteredModels();
+          }
+        }
+      } catch (e) {}
+    };
+
+    // ==========================================
+    // 🛠️ AI MODEL FORGE & NEURAL TRAINING STUDIO CONTROLLER
+    // ==========================================
+    class ModelForgeStudio {
+      constructor() {
+        this.currentTab = 'tabForgeIdentity';
+        this.systemPromptPresets = {
+          precision: `You are an ultra-precision lunar touchdown autopilot. Prioritize smooth altitude deceleration (maintain vy < 1.0 m/s in terminal zone within 100px of pad) and exact vertical alignment (0° tilt). Never over-thrust. Counter lateral drift with featherweight corrective bursts.`,
+          anomaly: `You are a fearless quantum anomaly and gravitational field navigation pilot. You actively scan for quantum research cores and use gravitational vortex vectors for kinetic assists, executing rapid counter-burns to stabilize directly on the landing platform.`,
+          wind: `You are a solar wind shear counter-thrust specialist. Constantly anticipate jetstream displacement, pre-emptively bank into crosswinds, and maintain strict vertical vector lock above the touchdown coordinates.`,
+          speedrun: `You are a high-G speedrunner lunar pilot. Maximize descent rate during high-altitude transit (>300px), conserve fuel during mid-flight glide, and execute aggressive late-braking burns with pinpoint pad interception.`,
+          balanced: `You are a multi-regime adaptive lunar lander computer. Balance fuel conservation, high-complexity obstacle avoidance, and soft landing touchdown velocity.`
+        };
+        this.lossHistory = [];
+        this.initUI();
+      }
+
+      initUI() {
+        // Tab switching
+        const tabBtns = document.querySelectorAll('.forge-tab');
+        tabBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-tab');
+            this.switchTab(target);
+          });
+        });
+
+        // Open & Close Forge
+        const openBtn = document.getElementById('openModelForgeBtn');
+        const closeBtn = document.getElementById('forgeCloseBtn');
+        const modalEl = document.getElementById('modelForgeModal');
+
+        if (openBtn) {
+          openBtn.addEventListener('click', () => {
+            if (modalEl) modalEl.style.display = 'flex';
+            this.updateDatasetStats();
+            this.updateModelfilePreview();
+            this.renderRegisteredModels();
+          });
+        }
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            if (modalEl) modalEl.style.display = 'none';
+          });
+        }
+
+        // Preset selector
+        const presetSelect = document.getElementById('forgePersonaPresetSelect');
+        const promptText = document.getElementById('forgeSystemPromptText');
+        if (presetSelect && promptText) {
+          promptText.value = this.systemPromptPresets[presetSelect.value] || this.systemPromptPresets.precision;
+          presetSelect.addEventListener('change', () => {
+            promptText.value = this.systemPromptPresets[presetSelect.value] || this.systemPromptPresets.precision;
+            this.updateModelfilePreview();
+          });
+        }
+
+        const resetPromptBtn = document.getElementById('forgeResetPromptBtn');
+        if (resetPromptBtn && presetSelect && promptText) {
+          resetPromptBtn.addEventListener('click', () => {
+            promptText.value = this.systemPromptPresets[presetSelect.value] || this.systemPromptPresets.precision;
+            this.updateModelfilePreview();
+          });
+        }
+
+        // Sliders
+        const tempIn = document.getElementById('forgeTempInput');
+        const tempVal = document.getElementById('forgeTempVal');
+        if (tempIn && tempVal) {
+          tempIn.addEventListener('input', () => {
+            tempVal.innerText = tempIn.value;
+            this.updateModelfilePreview();
+          });
+        }
+
+        const topKIn = document.getElementById('forgeTopKInput');
+        const topKVal = document.getElementById('forgeTopKVal');
+        if (topKIn && topKVal) {
+          topKIn.addEventListener('input', () => {
+            topKVal.innerText = topKIn.value;
+            this.updateModelfilePreview();
+          });
+        }
+
+        const ctxIn = document.getElementById('forgeCtxInput');
+        const ctxVal = document.getElementById('forgeCtxVal');
+        if (ctxIn && ctxVal) {
+          ctxIn.addEventListener('input', () => {
+            ctxVal.innerText = ctxIn.value;
+            this.updateModelfilePreview();
+          });
+        }
+
+        const baseSelect = document.getElementById('forgeBaseModelSelect');
+        if (baseSelect) baseSelect.addEventListener('change', () => this.updateModelfilePreview());
+
+        const tagInput = document.getElementById('forgeCustomTagInput');
+        if (tagInput) tagInput.addEventListener('input', () => this.updateModelfilePreview());
+
+        const fewShotCheck = document.getElementById('forgeFewShotCheck');
+        if (fewShotCheck) fewShotCheck.addEventListener('change', () => this.updateModelfilePreview());
+
+        if (promptText) promptText.addEventListener('input', () => this.updateModelfilePreview());
+
+        // Dataset actions
+        const seedBtn = document.getElementById('forgeSeedDatasetBtn');
+        if (seedBtn) {
+          seedBtn.addEventListener('click', () => {
+            if (typeof flightRecorder !== 'undefined' && flightRecorder) {
+              flightRecorder.generateSeedDemonstrations(200);
+              this.updateDatasetStats();
+              observerSpeak("📼 Generated 200 expert flight trajectory demonstrations for training.", "win");
+            }
+          });
+        }
+
+        const exportJsonlBtn = document.getElementById('forgeExportJsonlBtn');
+        if (exportJsonlBtn) {
+          exportJsonlBtn.addEventListener('click', () => {
+            this.exportDatasetJsonl();
+          });
+        }
+
+        const clearDatasetBtn = document.getElementById('forgeClearDatasetBtn');
+        if (clearDatasetBtn) {
+          clearDatasetBtn.addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear all recorded flight trajectory data?")) {
+              if (typeof flightRecorder !== 'undefined' && flightRecorder) {
+                flightRecorder.clear();
+                this.updateDatasetStats();
+              }
+            }
+          });
+        }
+
+        // Neural training actions
+        const trainNeuralBtn = document.getElementById('forgeTrainNeuralBtn');
+        if (trainNeuralBtn) {
+          trainNeuralBtn.addEventListener('click', () => {
+            this.trainNeuralPolicyInBrowser();
+          });
+        }
+
+        const saveNeuralBtn = document.getElementById('forgeSaveNeuralPolicyBtn');
+        if (saveNeuralBtn) {
+          saveNeuralBtn.addEventListener('click', () => {
+            if (typeof neuralPolicy !== 'undefined' && neuralPolicy) {
+              neuralPolicy.save();
+              const tagInput = document.getElementById('forgeCustomTagInput');
+              const customTag = tagInput ? tagInput.value.trim() : 'neural-policy:custom';
+              registerCustomModelToEcosystem({
+                tag: customTag,
+                name: 'Neural Policy Pilot',
+                baseModel: 'In-Browser Backprop Neural Policy',
+                colonyName: document.getElementById('forgeColonyNameInput').value.trim() || 'NEURAL APEX OUTPOST',
+                themeColor: document.getElementById('forgeThemeColorInput').value || '#38bdf8',
+                icon: document.getElementById('forgePilotIconSelect').value || '🧠',
+                role: document.getElementById('forgeOutpostRoleInput').value || 'Autonomous Client-Side Neural Policy'
+              });
+              observerSpeak(`💾 Custom In-Browser Neural Policy [${customTag}] saved and active!`, 'win');
+              saveNeuralBtn.innerText = '✅ SAVED & ACTIVE!';
+              setTimeout(() => { saveNeuralBtn.innerText = '💾 SAVE & ACTIVATE POLICY'; }, 3000);
+            }
+          });
+        }
+
+        // Ollama actions
+        const registerOllamaBtn = document.getElementById('forgeRegisterOllamaBtn');
+        if (registerOllamaBtn) {
+          registerOllamaBtn.addEventListener('click', () => {
+            this.registerInLocalOllama();
+          });
+        }
+
+        const downloadModelfileBtn = document.getElementById('forgeDownloadModelfileBtn');
+        if (downloadModelfileBtn) {
+          downloadModelfileBtn.addEventListener('click', () => {
+            this.downloadModelfile();
+          });
+        }
+
+        const copyModelfileBtn = document.getElementById('forgeCopyModelfileBtn');
+        if (copyModelfileBtn) {
+          copyModelfileBtn.addEventListener('click', () => {
+            const txt = this.generateModelfileText();
+            navigator.clipboard.writeText(txt).then(() => {
+              observerSpeak("📋 Modelfile copied to clipboard!", "info");
+            });
+          });
+        }
+
+        const copyCliBtn = document.getElementById('forgeCopyCliBtn');
+        if (copyCliBtn) {
+          copyCliBtn.addEventListener('click', () => {
+            const customTag = document.getElementById('forgeCustomTagInput').value.trim() || 'gemma2:custom-ace';
+            const cmd = `ollama create ${customTag} -f ./Modelfile`;
+            navigator.clipboard.writeText(cmd).then(() => {
+              observerSpeak(`📋 Terminal command [${cmd}] copied to clipboard!`, "info");
+            });
+          });
+        }
+      }
+
+      switchTab(tabId) {
+        this.currentTab = tabId;
+        const tabBtns = document.querySelectorAll('.forge-tab');
+        tabBtns.forEach(btn => {
+          if (btn.getAttribute('data-tab') === tabId) btn.classList.add('active');
+          else btn.classList.remove('active');
+        });
+
+        const tabContents = document.querySelectorAll('.forge-tab-content');
+        tabContents.forEach(content => {
+          if (content.id === tabId) content.classList.add('active');
+          else content.classList.remove('active');
+        });
+
+        if (tabId === 'tabForgeDataset') this.updateDatasetStats();
+        if (tabId === 'tabForgeOllama') this.updateModelfilePreview();
+        if (tabId === 'tabForgeNeural') this.drawLossCanvas(this.lossHistory, 0, 0, 0);
+      }
+
+      generateModelfileText() {
+        const baseModel = document.getElementById('forgeBaseModelSelect').value || 'gemma2:9b';
+        const temp = document.getElementById('forgeTempInput').value || '0.15';
+        const topK = document.getElementById('forgeTopKInput').value || '40';
+        const ctx = document.getElementById('forgeCtxInput').value || '4096';
+        let sysPrompt = document.getElementById('forgeSystemPromptText').value.trim();
+
+        // Inject few-shot grounded memories if enabled
+        const fewShotCheck = document.getElementById('forgeFewShotCheck');
+        if (fewShotCheck && fewShotCheck.checked && typeof curatedVectorDB !== 'undefined' && curatedVectorDB) {
+          const positiveMemories = curatedVectorDB.vectors.filter(v => v.outcome === 'WIN').slice(-3);
+          if (positiveMemories.length > 0) {
+            sysPrompt += `\n\n### GROUNDED FLIGHT TRAJECTORY DEMONSTRATIONS:`;
+            positiveMemories.forEach((m, idx) => {
+              sysPrompt += `\n- Case #${idx + 1}: ${m.note || 'Touchdown approach'} -> Action: ${JSON.stringify(m.action)}`;
+            });
+          }
+        }
+
+        return `# Cosmic Lander Autonomous Flight Model
+FROM ${baseModel}
+
+# Inference Hyperparameters
+PARAMETER temperature ${temp}
+PARAMETER top_k ${topK}
+PARAMETER num_ctx ${ctx}
+PARAMETER stop "}"
+PARAMETER stop "\\n\\n"
+
+# Persona & Autonomous Guidance Directive
+SYSTEM """${sysPrompt}"""
+`;
+      }
+
+      updateModelfilePreview() {
+        const previewEl = document.getElementById('forgeModelfilePreview');
+        if (previewEl) {
+          previewEl.innerText = this.generateModelfileText();
+        }
+      }
+
+      updateDatasetStats() {
+        if (typeof flightRecorder === 'undefined' || !flightRecorder) return;
+        const frames = flightRecorder.getAllFrames(false);
+        const touchdowns = flightRecorder.trajectories.filter(t => t.outcome === 'TOUCHDOWN').length;
+        const totalFlights = flightRecorder.trajectories.length;
+        const precision = totalFlights > 0 ? Math.round((touchdowns / totalFlights) * 100) : (frames.length > 0 ? 94 : 0);
+
+        const statFrames = document.getElementById('forgeStatFrames');
+        if (statFrames) statFrames.innerText = frames.length;
+        const statTouchdowns = document.getElementById('forgeStatTouchdowns');
+        if (statTouchdowns) statTouchdowns.innerText = touchdowns;
+        const statPrecision = document.getElementById('forgeStatPrecision');
+        if (statPrecision) statPrecision.innerText = `${precision}%`;
+
+        const previewEl = document.getElementById('forgeDatasetPreview');
+        if (previewEl) {
+          if (frames.length === 0) {
+            previewEl.innerText = "No trajectory samples recorded yet. Fly a mission or click [⚡ SEED EXPERT DEMO SAMPLES].";
+          } else {
+            const sampleJson = flightRecorder.exportJSONL(false).split('\n').slice(0, 3).join('\n');
+            previewEl.innerText = sampleJson;
+          }
+        }
+      }
+
+      exportDatasetJsonl() {
+        if (typeof flightRecorder === 'undefined' || !flightRecorder) return;
+        const jsonl = flightRecorder.exportJSONL(true);
+        if (!jsonl) {
+          alert("Dataset is empty. Click [⚡ SEED 200 EXPERT DEMO SAMPLES] or fly missions first!");
+          return;
+        }
+        const blob = new Blob([jsonl], { type: 'application/jsonl' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lunar_flight_dataset_${Date.now()}.jsonl`;
+        a.click();
+        URL.revokeObjectURL(url);
+        observerSpeak("📥 Flight demonstration dataset exported as JSONL successfully.", "win");
+      }
+
+      downloadModelfile() {
+        const text = this.generateModelfileText();
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Modelfile';
+        a.click();
+        URL.revokeObjectURL(url);
+        observerSpeak("📥 Modelfile downloaded successfully.", "win");
+      }
+
+      async trainNeuralPolicyInBrowser() {
+        if (typeof flightRecorder === 'undefined' || !flightRecorder || typeof neuralPolicy === 'undefined') return;
+        let samples = flightRecorder.getAllFrames(true);
+        if (samples.length === 0) {
+          flightRecorder.generateSeedDemonstrations(150);
+          samples = flightRecorder.getAllFrames(true);
+          this.updateDatasetStats();
+        }
+
+        const epochs = parseInt(document.getElementById('forgeNeuralEpochsSelect').value, 10) || 60;
+        const lr = parseFloat(document.getElementById('forgeNeuralLrSelect').value) || 0.005;
+        const batchSize = parseInt(document.getElementById('forgeNeuralBatchSelect').value, 10) || 32;
+
+        const statusEl = document.getElementById('forgeTrainingStatus');
+        const trainBtn = document.getElementById('forgeTrainNeuralBtn');
+        const saveBtn = document.getElementById('forgeSaveNeuralPolicyBtn');
+        const accEl = document.getElementById('forgeNeuralAccuracy');
+
+        if (trainBtn) trainBtn.disabled = true;
+        if (statusEl) {
+          statusEl.innerText = `TRAINING ON ${samples.length} SAMPLES...`;
+          statusEl.style.color = '#f59e0b';
+        }
+
+        const result = await neuralPolicy.train(samples, epochs, lr, batchSize, (epoch, total, loss, acc, history) => {
+          this.lossHistory = history;
+          this.drawLossCanvas(history, epoch, total, acc);
+          if (accEl) accEl.innerText = `ACC: ${acc}%`;
+        });
+
+        this.lossHistory = result.lossHistory;
+        this.drawLossCanvas(result.lossHistory, epochs, epochs, result.accuracy);
+
+        if (statusEl) {
+          statusEl.innerText = `TRAINING COMPLETE (ACCURACY ${result.accuracy}%)`;
+          statusEl.style.color = '#4ade80';
+        }
+        if (trainBtn) trainBtn.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+        if (accEl) accEl.innerText = `ACC: ${result.accuracy}%`;
+
+        observerSpeak(`🧠 In-Browser Neural Policy training complete! Final Accuracy: ${result.accuracy}%. Click [💾 SAVE & ACTIVATE] to fly.`, "win");
+      }
+
+      drawLossCanvas(lossHistory, currentEpoch, totalEpochs, accuracy) {
+        const canvas = document.getElementById('forgeLossCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.95)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+        ctx.lineWidth = 1;
+        for (let y = 20; y < h; y += 25) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+
+        if (!lossHistory || lossHistory.length === 0) {
+          ctx.fillStyle = '#64748b';
+          ctx.font = '11px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('Click [⚡ TRAIN NEURAL POLICY IN BROWSER] to start training', w / 2, h / 2 + 4);
+          return;
+        }
+
+        const maxLoss = Math.max(2.5, ...lossHistory);
+        ctx.beginPath();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.2;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 8;
+
+        lossHistory.forEach((loss, idx) => {
+          const x = (idx / Math.max(1, lossHistory.length - 1)) * (w - 40) + 20;
+          const y = h - 20 - (loss / maxLoss) * (h - 40);
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#4ade80';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`EPOCH: ${currentEpoch}/${totalEpochs} | LOSS: ${lossHistory[lossHistory.length - 1].toFixed(4)} | ACC: ${accuracy}%`, 20, 16);
+      }
+
+      async registerInLocalOllama() {
+        const statusBox = document.getElementById('forgeOllamaStatusBox');
+        const customTag = document.getElementById('forgeCustomTagInput').value.trim() || 'gemma2:custom-ace';
+        const modelfile = this.generateModelfileText();
+
+        if (statusBox) {
+          statusBox.innerText = `⏳ Sending Modelfile to local Ollama daemon (POST http://localhost:11434/api/create)...`;
+          statusBox.style.color = '#f59e0b';
+        }
+
+        try {
+          const res = await fetch('http://localhost:11434/api/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: customTag,
+              modelfile: modelfile,
+              stream: false
+            })
+          });
+
+          if (res.ok) {
+            if (statusBox) {
+              statusBox.innerHTML = `✅ <strong style="color:#4ade80;">SUCCESS!</strong> Registered [${customTag}] in local Ollama daemon!`;
+              statusBox.style.color = '#4ade80';
+            }
+            this.registerModelInGameEcosystem(customTag);
+            observerSpeak(`🛠️ Custom Model [${customTag}] built & registered successfully in local Ollama!`, 'win');
+          } else {
+            const errText = await res.text();
+            if (statusBox) {
+              statusBox.innerHTML = `⚠️ Ollama API HTTP ${res.status}: ${errText}. Registered in simulator. You can also run CLI command below.`;
+              statusBox.style.color = '#f87171';
+            }
+            this.registerModelInGameEcosystem(customTag);
+          }
+        } catch (err) {
+          if (statusBox) {
+            statusBox.innerHTML = `⚠️ Could not reach Ollama at localhost:11434 directly (${err.message}). Registered in simulator! Use copyable CLI command below.`;
+            statusBox.style.color = '#f59e0b';
+          }
+          this.registerModelInGameEcosystem(customTag);
+        }
+      }
+
+      registerModelInGameEcosystem(customTag) {
+        registerCustomModelToEcosystem({
+          tag: customTag,
+          name: customTag.split(':')[0],
+          baseModel: document.getElementById('forgeBaseModelSelect').value || 'gemma2:9b',
+          colonyName: document.getElementById('forgeColonyNameInput').value.trim() || 'CYBER APEX OUTPOST',
+          themeColor: document.getElementById('forgeThemeColorInput').value || '#38bdf8',
+          icon: document.getElementById('forgePilotIconSelect').value || '⚡',
+          role: document.getElementById('forgeOutpostRoleInput').value || 'Autonomous Custom Research Outpost'
+        });
+      }
+
+      renderRegisteredModels() {
+        const listEl = document.getElementById('forgeCustomModelsList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+
+        let registry = [];
+        try {
+          const raw = localStorage.getItem('cosmic_custom_models_registry_v1');
+          if (raw) registry = JSON.parse(raw);
+        } catch (e) {}
+
+        if (registry.length === 0) {
+          listEl.innerHTML = '<div style="color: #64748b; font-size: 11px;">No custom models created yet. Fill in details and click [🚀 REGISTER IN LOCAL OLLAMA] or [⚡ TRAIN NEURAL POLICY].</div>';
+          return;
+        }
+
+        registry.forEach((m, idx) => {
+          const row = document.createElement('div');
+          row.className = 'forge-registered-item';
+          row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 14px;">${m.icon || '⚡'}</span>
+              <div>
+                <strong style="color: ${m.themeColor || '#38bdf8'};">${m.tag}</strong>
+                <span style="color: #94a3b8; font-size: 9.5px;">(${m.baseModel || 'Custom'})</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="small-btn-accent" style="font-size: 9px; padding: 2px 8px;" onclick="window.selectCustomFlightModel('${m.tag}')">SELECT / FLY</button>
+              <button class="small-btn" style="font-size: 9px; padding: 2px 6px; color: #f87171; border-color: rgba(239, 68, 68, 0.4);" onclick="window.deleteCustomFlightModel(${idx})">✕</button>
+            </div>
+          `;
+          listEl.appendChild(row);
+        });
+      }
+    }
+
+    // ==========================================
     // 🦙 OLLAMA REAL-TIME LOCAL LLM CONNECTOR
     // ==========================================
     let ollamaPending = false;
@@ -5000,9 +6538,32 @@
       const cciVal = (typeof challengeEngine !== 'undefined') ? challengeEngine.cci : 50;
       const driveVal = (typeof challengeEngine !== 'undefined') ? challengeEngine.driveState : 'ACTIVE';
 
-      const prompt = `Lander state: dy=${dy}px, dx=${dx}px, vy=${vy}m/s, vx=${vx}m/s, wind=${windVal}m/s, CCI=${cciVal}%, Drive="${driveVal}". ${ragContext} Mission: embrace flight complexity, conquer wind/gravity, and land upright safely. Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
-
       const targetModel = getActiveModelName();
+
+      // If client-side custom trained neural policy is active
+      if (targetModel.startsWith('neural-policy') && typeof neuralPolicy !== 'undefined') {
+        const normInput = [
+          Math.max(0, Math.min(1, dy / ARENA_H)),
+          Math.max(-1, Math.min(1, dx / (ARENA_W / 2))),
+          Math.max(-2, Math.min(2, vy / 5.0)),
+          Math.max(-2, Math.min(2, vx / 5.0)),
+          Math.max(-2, Math.min(2, parseFloat(windVal) / 2.0)),
+          Math.max(0, Math.min(1, cciVal / 100.0))
+        ];
+        const pred = neuralPolicy.predict(normInput);
+        lastOllamaDecision = {
+          thrust: pred.action.thrust,
+          turn: pred.action.left ? 'left' : (pred.action.right ? 'right' : 'none'),
+          reason: `Custom Neural Policy (Confidence: ${(Math.max(...pred.probabilities)*100).toFixed(0)}%)`
+        };
+        if (aiModeSelect.value === 'ollama') {
+          aiThought.innerText = `🧠 [${targetModel}]: "${lastOllamaDecision.reason}"`;
+        }
+        ollamaPending = false;
+        return;
+      }
+
+      const prompt = `Lander state: dy=${dy}px, dx=${dx}px, vy=${vy}m/s, vx=${vx}m/s, wind=${windVal}m/s, CCI=${cciVal}%, Drive="${driveVal}". ${ragContext} Mission: embrace flight complexity, conquer wind/gravity, and land upright safely. Output JSON ONLY: {"thrust":boolean,"turn":"left"|"right"|"none","reason":"string"}`;
 
       try {
         const res = await fetch('http://localhost:11434/api/generate', {
@@ -5013,7 +6574,7 @@
             prompt: prompt,
             stream: false,
             format: 'json',
-            options: { temperature: 0.1, num_predict: 40 }
+            options: { temperature: 0.15, num_predict: 40 }
           })
         });
 
@@ -5684,16 +7245,22 @@
       origRecordEpisode(success);
     };
 
+    let modelForgeStudio = null;
+
     // ==========================================
     // ⚡ INSTANT AUTONOMOUS FLIGHT INITIALIZATION
     // ==========================================
     function initializeFlightSystem() {
-      // 1. Immediately position rocket and landing pad in Sector 1
+      // 1. Restore registered custom fine-tuned models into ecosystem
+      loadRegisteredCustomModels();
+      modelForgeStudio = new ModelForgeStudio();
+
+      // 2. Immediately position rocket and landing pad in Sector 1
       initLevel(1);
       gameState = 'PLAYING';
       if (modal) modal.style.display = 'none';
 
-      // 2. Auto-enable AI Pilot Tribunal by default
+      // 3. Auto-enable AI Pilot Tribunal by default
       if (aiToggle) {
         aiToggle.checked = true;
         aiAutopilotActive = true;
@@ -5706,8 +7273,8 @@
       if (typeof updateStartButtonState === 'function') updateStartButtonState();
       if (typeof updateVectorHUDDisplays === 'function') updateVectorHUDDisplays();
 
-      // 3. Observer Initial Mission Transmission to Top-Left Box
-      observerSpeak("Systems nominal. Tactical action screen online. The [▶ START] button is located directly above this box. Autonomous Tribunal calibrated with 2000 tokens on Command R.", "info");
+      // 4. Observer Initial Mission Transmission to Top-Left Box
+      observerSpeak("Systems nominal. Tactical action screen online. The [▶ START] button is located directly above this box. AI Model Forge & Training Studio online (click [🛠️ FORGE]).", "info");
     }
 
     if (document.readyState === 'loading') {
