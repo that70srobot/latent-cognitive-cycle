@@ -185,6 +185,27 @@
       width: 100%;
       transition: width 0.1s linear;
     }
+    .bar-timer {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 100%;
+      transition: width 0.1s linear, background 0.3s ease;
+    }
+    .timer-safe {
+      background: linear-gradient(90deg, #10b981, #38bdf8);
+    }
+    .timer-warn {
+      background: linear-gradient(90deg, #f59e0b, #eab308);
+    }
+    .timer-danger {
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+      animation: pulseDanger 0.8s infinite alternate;
+    }
+    @keyframes pulseDanger {
+      0% { opacity: 0.85; }
+      100% { opacity: 1; filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9)); }
+    }
 
     /* Telemetry grid */
     .telemetry-grid {
@@ -803,7 +824,11 @@
           <button id="hudPauseBtn" class="action-btn pause-btn">⏸ PAUSE</button>
           <button id="hudResetBtn" class="action-btn reset-btn" title="Restart Current Sector">🔄</button>
         </div>
-        <!-- Fuel & Hull Progress Bars -->
+        <!-- Time, Fuel & Hull Progress Bars -->
+        <div class="bar-container">
+          <span class="bar-label">TIME:</span>
+          <div class="bar-outer"><div id="timerBar" class="bar-timer timer-safe"></div></div>
+        </div>
         <div class="bar-container">
           <span class="bar-label">FUEL:</span>
           <div class="bar-outer"><div id="fuelBar" class="bar-fuel"></div></div>
@@ -814,14 +839,14 @@
         </div>
         <!-- Telemetry Grid -->
         <div class="telemetry-grid">
+          <div class="telemetry-item"><span class="t-label">TIMER</span><span class="t-val safe" id="missionTimerDisplay">50.0s</span></div>
           <div class="telemetry-item"><span class="t-label">SECTOR</span><span class="t-val highlight" id="levelDisplay">LVL 1 / 100</span></div>
           <div class="telemetry-item"><span class="t-label">GRAVITY</span><span class="t-val warning" id="gravityDisplay">0.015 g</span></div>
-          <div class="telemetry-item"><span class="t-label">TOKENS</span><span class="t-val gold" id="tokenDisplay">2000</span></div>
           <div class="telemetry-item"><span class="t-label">SCORE</span><span class="t-val purple" id="scoreDisplay">0</span></div>
+          <div class="telemetry-item"><span class="t-label">TOKENS</span><span class="t-val gold" id="tokenDisplay">2000</span></div>
           <div class="telemetry-item"><span class="t-label">V-SPEED</span><span class="t-val safe" id="vSpeedDisplay">0.0 m/s</span></div>
           <div class="telemetry-item"><span class="t-label">H-SPEED</span><span class="t-val safe" id="hSpeedDisplay">0.0 m/s</span></div>
           <div class="telemetry-item"><span class="t-label">TILT</span><span class="t-val safe" id="tiltDisplay">0°</span></div>
-          <div class="telemetry-item"><span class="t-label">DIST PAD</span><span class="t-val safe" id="sidebarPadDist">--</span></div>
         </div>
       </div>
 
@@ -1002,8 +1027,10 @@
     const ctx = canvas.getContext('2d');
 
     // UI elements
+    const timerBar = document.getElementById('timerBar');
     const fuelBar = document.getElementById('fuelBar');
     const shieldBar = document.getElementById('shieldBar');
+    const missionTimerDisplay = document.getElementById('missionTimerDisplay');
     const vSpeedDisplay = document.getElementById('vSpeedDisplay');
     const hSpeedDisplay = document.getElementById('hSpeedDisplay');
     const tiltDisplay = document.getElementById('tiltDisplay');
@@ -1475,6 +1502,24 @@
           osc.start(now + idx * 0.1);
           osc.stop(now + idx * 0.1 + 0.8);
         });
+      }
+      playWarningBeep() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(740, now);
+          osc.frequency.setValueAtTime(440, now + 0.08);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.16);
+        } catch(e) {}
       }
     }
     const sound = new SoundFX();
@@ -2455,6 +2500,9 @@
     let currentGravity = 0.015;
     let score = 0;
     let gameState = 'MENU'; // 'MENU', 'PLAYING', 'WON', 'GAMEOVER'
+    let missionTimeLimit = 50.0;
+    let missionTimeRemaining = 50.0;
+    let overtimePenaltyCounter = 0;
     const rocket = new Rocket();
     let particles = [];
     let asteroids = [];
@@ -2478,10 +2526,21 @@
     function initLevel(lvl) {
       currentLevel = Math.max(1, Math.min(MAX_LEVELS, lvl));
       currentGravity = calculateGravity(currentLevel);
+      missionTimeLimit = Math.max(30.0, 55.0 - (currentLevel - 1) * 0.25);
+      missionTimeRemaining = missionTimeLimit;
+      overtimePenaltyCounter = 0;
 
       if (levelDisplay) levelDisplay.innerText = `LVL ${currentLevel} / ${MAX_LEVELS}`;
       if (gravityDisplay) gravityDisplay.innerText = `${currentGravity.toFixed(3)} g`;
       if (tokenDisplay) tokenDisplay.innerText = aiTokens;
+      if (missionTimerDisplay) {
+        missionTimerDisplay.innerText = `${missionTimeRemaining.toFixed(1)}s`;
+        missionTimerDisplay.className = 't-val safe';
+      }
+      if (timerBar) {
+        timerBar.style.width = '100%';
+        timerBar.className = 'bar-timer timer-safe';
+      }
 
       particles = [];
       asteroids = [];
@@ -2631,16 +2690,23 @@
       sound.stopThrust();
       sound.playWin();
 
-      score += 1000 + Math.floor(rocket.fuel * 10);
+      const fuelBonus = Math.floor(rocket.fuel * 10);
+      const speedrunBonus = missionTimeRemaining > 0 ? Math.floor(missionTimeRemaining * 20) : 0;
+      const totalBonus = 1000 + fuelBonus + speedrunBonus;
+      score += totalBonus;
       scoreDisplay.innerText = score;
 
       // Token Award on Touchdown: +50 Tokens
       updateTokenDisplay(+50);
 
+      const timeBonusHtml = speedrunBonus > 0 
+        ? `<br>Speedrun Bonus: <strong style="color:#38bdf8;">+${speedrunBonus} pts</strong> (${missionTimeRemaining.toFixed(1)}s remaining)`
+        : `<br><span style="color:#f59e0b;">(Overtime touchdown - No speedrun bonus)</span>`;
+
       if (currentLevel < MAX_LEVELS) {
         modalTitle.innerText = 'TOUCHDOWN CONFIRMED!';
         modalTitle.style.color = '#4ade80';
-        modalDesc.innerHTML = `Safe landing in Sector ${currentLevel}!<br>Council rewarded: <strong style="color:#fbbf24;">+50 Tokens</strong> (Balance: ${aiTokens})<br>Ready for Sector ${currentLevel + 1}?`;
+        modalDesc.innerHTML = `Safe landing in Sector ${currentLevel}!${timeBonusHtml}<br>Council rewarded: <strong style="color:#fbbf24;">+50 Tokens</strong> (Balance: ${aiTokens})<br>Ready for Sector ${currentLevel + 1}?`;
         modalBtn.innerText = `PROCEED TO SECTOR ${currentLevel + 1}`;
         modalBtn.onclick = () => {
           modal.style.display = 'none';
@@ -2651,7 +2717,7 @@
       } else {
         modalTitle.innerText = '100 SECTORS CONQUERED!';
         modalTitle.style.color = '#4ade80';
-        modalDesc.innerHTML = `The Council has completed all 100 orbital sectors!<br>Final Token Treasury: <strong style="color:#fbbf24;">${aiTokens}</strong> Tokens.<br>Cosmic Mastery Confirmed!`;
+        modalDesc.innerHTML = `The Council has completed all 100 orbital sectors!${timeBonusHtml}<br>Final Token Treasury: <strong style="color:#fbbf24;">${aiTokens}</strong> Tokens.<br>Cosmic Mastery Confirmed!`;
         modalBtn.innerText = 'BEGIN NEW CYCLE';
         modalBtn.onclick = () => {
           score = 0;
@@ -2660,6 +2726,7 @@
           gameState = 'PLAYING';
         };
       }
+      observerSpeak(`TOUCHDOWN CONFIRMED! (+1000 Base, +${fuelBonus} Fuel, +${speedrunBonus} Speedrun Bonus, +50 Tokens).`, 'success');
       if (typeof rlAgent !== 'undefined') {
         rlAgent.recordEpisode(true);
       }
@@ -3168,6 +3235,31 @@
       // Rocket & AI Pilot Computation
       if (!rocket.crashed) {
         if (gameState === 'PLAYING') {
+          // Mission Countdown & Overtime Penalties
+          if (!rocket.landed) {
+            missionTimeRemaining -= (1 / 60);
+
+            if (missionTimeRemaining <= 0) {
+              overtimePenaltyCounter++;
+              // Every 60 frames (1s), deduct 25 score & 1% shield
+              if (overtimePenaltyCounter % 60 === 0) {
+                score = Math.max(0, score - 25);
+                if (scoreDisplay) scoreDisplay.innerText = score;
+                rocket.shield = Math.max(0, rocket.shield - 1.0);
+                if (shieldBar) shieldBar.style.width = `${rocket.shield}%`;
+
+                if (overtimePenaltyCounter % 180 === 0) {
+                  observerSpeak(`⚠️ OVERTIME PENALTY: Orbital thermal decay draining score (-25) and hull (-1%)! Touch down immediately!`, 'error');
+                  sound.playWarningBeep();
+                }
+
+                if (rocket.shield <= 0) {
+                  explodeRocket('Hull collapse due to prolonged orbital decay & thermal burnout!');
+                }
+              }
+            }
+          }
+
           if (aiAutopilotActive) {
             runLLMPilotLogic();
           }
@@ -3178,6 +3270,25 @@
           drawTrajectoryForecast(ctx);
         }
         rocket.draw(ctx);
+
+        // In-flight Timer Urgency Banner inside Virtual Arena
+        if (gameState === 'PLAYING' && !rocket.crashed && !rocket.landed) {
+          if (missionTimeRemaining <= 0) {
+            ctx.save();
+            ctx.font = 'bold 12px monospace';
+            ctx.fillStyle = (Math.floor(Date.now() / 250) % 2 === 0) ? '#f87171' : '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`⚠️ OVERTIME PENALTY (-25 PTS/S) | TIME: -${Math.abs(missionTimeRemaining).toFixed(1)}s`, ARENA_W * 0.5, 30);
+            ctx.restore();
+          } else if (missionTimeRemaining <= 10) {
+            ctx.save();
+            ctx.font = 'bold 11px monospace';
+            ctx.fillStyle = (Math.floor(Date.now() / 350) % 2 === 0) ? '#f59e0b' : '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`⏱️ TIME CRITICAL: ${missionTimeRemaining.toFixed(1)}s REMAINING`, ARENA_W * 0.5, 30);
+            ctx.restore();
+          }
+        }
       } else {
         // Visual indicator while re-launching after crash
         ctx.save();
@@ -3214,6 +3325,29 @@
       }
 
       // 3. Telemetry Overlay & DOM Updates
+      if (missionTimerDisplay) {
+        if (missionTimeRemaining > 0) {
+          missionTimerDisplay.innerText = `${missionTimeRemaining.toFixed(1)}s`;
+          if (missionTimeRemaining > 20) {
+            missionTimerDisplay.className = 't-val safe';
+            if (timerBar) timerBar.className = 'bar-timer timer-safe';
+          } else if (missionTimeRemaining > 10) {
+            missionTimerDisplay.className = 't-val warning';
+            if (timerBar) timerBar.className = 'bar-timer timer-warn';
+          } else {
+            missionTimerDisplay.className = 't-val danger';
+            if (timerBar) timerBar.className = 'bar-timer timer-danger';
+          }
+        } else {
+          missionTimerDisplay.innerText = `-${Math.abs(missionTimeRemaining).toFixed(1)}s!`;
+          missionTimerDisplay.className = 't-val danger';
+          if (timerBar) timerBar.className = 'bar-timer timer-danger';
+        }
+      }
+      if (timerBar) {
+        const pct = Math.max(0, Math.min(100, (missionTimeRemaining / missionTimeLimit) * 100));
+        timerBar.style.width = `${pct}%`;
+      }
       fuelBar.style.width = `${Math.min(100, Math.max(0, (rocket.fuel / (rocket.maxFuel || 250)) * 100))}%`;
       shieldBar.style.width = `${rocket.shield}%`;
 
@@ -3469,6 +3603,17 @@
         // 10. Precision Stunt Flare Deceleration Gate
         if (dyToPad < 130 && dyToPad > 30 && r.vy > 1.2 && r.vy < 2.4 && keys.thrust) {
           reward += 0.50; // Dynamic flare commitment
+        }
+
+        // 11. Mission Countdown & Lingering Penalty (Incentivizes swift, decisive flight path)
+        if (typeof missionTimeRemaining !== 'undefined') {
+          if (missionTimeRemaining <= 0) {
+            reward -= 0.65; // Severe penalty for hovering in overtime decay
+          } else if (missionTimeRemaining < 10.0) {
+            reward -= 0.15; // Urgency penalty as flight window closes
+          } else if (missionTimeRemaining < 20.0) {
+            reward -= 0.05; // Light hovering dampener
+          }
         }
 
         return reward;
