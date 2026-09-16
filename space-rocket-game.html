@@ -230,8 +230,14 @@
         <span id="voteVDB" style="color: #c084fc;">🌌 RAG: --</span>
       </div>
 
+      <!-- Autonomous Watchdog & Supervisor Banner -->
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 9px; margin-bottom: 4px; padding: 2px 6px; background: rgba(2, 132, 199, 0.15); border-radius: 4px; border: 1px solid rgba(2, 132, 199, 0.3);">
+        <span>🛰️ WATCHDOG: <strong id="watchdogStatus" style="color: #4ade80;">ACTIVE</strong></span>
+        <span>SUPERVISOR: <strong id="supervisorAction" style="color: #38bdf8;">HEALTHY</strong></span>
+      </div>
+
       <div id="aiThought" style="font-size: 10px; color: #a5f3fc; font-style: italic; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        Mode: Human Pilot. Toggle ON for AI Tribunal & Vector Brain.
+        Autonomous Tribunal Online. Self-monitoring telemetry active.
       </div>
     </div>
 
@@ -299,6 +305,8 @@
     const voteLLM = document.getElementById('voteLLM');
     const votePID = document.getElementById('votePID');
     const voteVDB = document.getElementById('voteVDB');
+    const watchdogStatus = document.getElementById('watchdogStatus');
+    const supervisorAction = document.getElementById('supervisorAction');
 
     // Token Economy (Starting with 2000 tokens)
     let aiTokens = 2000;
@@ -1644,6 +1652,157 @@
       ctx.fill();
       ctx.restore();
     }
+
+    // ==========================================
+    // 🛰️ AUTONOMOUS FLIGHT SUPERVISOR & MONITOR
+    // ==========================================
+    class AutonomousSupervisor {
+      constructor() {
+        this.consecutiveCrashes = 0;
+        this.consecutiveWins = 0;
+        this.lastHeartbeat = Date.now();
+        this.stallDetectTime = 0;
+        this.prevRocketX = null;
+        this.prevRocketY = null;
+
+        // Health monitor check every 1.5 seconds
+        setInterval(() => this.runSupervisoryCheck(), 1500);
+      }
+
+      runSupervisoryCheck() {
+        if (!aiAutopilotActive) return;
+
+        // 1. STALL WATCHDOG: If game is stuck in modal for > 3.5s, auto-trigger next mission
+        if (gameState === 'MENU' || gameState === 'WON' || gameState === 'GAMEOVER') {
+          if (modal && modal.style.display !== 'none') {
+            if (watchdogStatus) watchdogStatus.innerText = 'RELAUNCHING';
+            if (supervisorAction) supervisorAction.innerText = 'AUTO-PROCEED';
+            setTimeout(() => { if (modalBtn) modalBtn.click(); }, 300);
+          }
+        }
+
+        // 2. STALL DETECTOR IN FLIGHT: Detect zero movement or boundary freeze
+        if (gameState === 'PLAYING' && !rocket.crashed && !rocket.landed) {
+          if (this.prevRocketX !== null) {
+            const motionDelta = Math.hypot(rocket.x - this.prevRocketX, rocket.y - this.prevRocketY);
+            if (motionDelta < 0.2) {
+              this.stallDetectTime++;
+              if (this.stallDetectTime >= 3) {
+                // Rocket is stalled: pulse emergency thrusters to unfreeze
+                rocket.vy -= 1.2;
+                keys.thrust = true;
+                if (supervisorAction) supervisorAction.innerText = 'UNFREEZING';
+                setTimeout(() => { keys.thrust = false; }, 400);
+                this.stallDetectTime = 0;
+              }
+            } else {
+              this.stallDetectTime = 0;
+            }
+          }
+          this.prevRocketX = rocket.x;
+          this.prevRocketY = rocket.y;
+        }
+
+        // 3. ADAPTIVE RECONFIGURATION: If consecutive crashes >= 3, intervene
+        if (this.consecutiveCrashes >= 3) {
+          this.reconfigureCouncil("Consecutive crash threshold exceeded");
+        } else if (this.consecutiveWins >= 3) {
+          if (supervisorAction) supervisorAction.innerText = 'OPTIMIZING';
+        } else {
+          if (supervisorAction) supervisorAction.innerText = 'HEALTHY';
+        }
+
+        if (watchdogStatus) watchdogStatus.innerText = 'MONITORING';
+      }
+
+      recordOutcome(success) {
+        if (success) {
+          this.consecutiveWins++;
+          this.consecutiveCrashes = 0;
+        } else {
+          this.consecutiveCrashes++;
+          this.consecutiveWins = 0;
+        }
+      }
+
+      reconfigureCouncil(triggerReason) {
+        // Rotate Ollama model to try next architecture
+        rotateOllamaModel();
+        const newModel = getActiveModelName();
+
+        // Tune exploration rate and re-weight Q-Learning
+        if (rlAgent) {
+          rlAgent.epsilon = Math.min(0.70, rlAgent.epsilon + 0.15); // Increase exploration
+        }
+
+        // Prune any corrupt/extreme crash memories from Vector DB
+        if (vectorDB && vectorDB.vectors.length > 20) {
+          const crashes = vectorDB.vectors.filter(v => v.outcome === 'CRASH');
+          if (crashes.length > 30) {
+            vectorDB.vectors = vectorDB.vectors.slice(-40); // Prune old noise
+          }
+        }
+
+        if (supervisorAction) {
+          supervisorAction.innerText = `RECONFIG: [${newModel.split(':')[0]}]`;
+          supervisorAction.style.color = '#f59e0b';
+          setTimeout(() => { if (supervisorAction) supervisorAction.style.color = '#38bdf8'; }, 2000);
+        }
+
+        if (aiThought) {
+          aiThought.innerText = `🛰️ Supervisor Intervened: Reconfigured to [${newModel}] & tuned RL exploration`;
+        }
+
+        this.consecutiveCrashes = 0;
+      }
+    }
+
+    const flightSupervisor = new AutonomousSupervisor();
+
+    // Hook supervisor into episode results
+    const origRecordEpisode = rlAgent.recordEpisode.bind(rlAgent);
+    rlAgent.recordEpisode = function(success) {
+      flightSupervisor.recordOutcome(success);
+      origRecordEpisode(success);
+    };
+
+    // ==========================================
+    // ⚡ INSTANT AUTONOMOUS START ON LOAD
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      // Auto-enable AI Pilot Tribunal by default
+      if (aiToggle) {
+        aiToggle.checked = true;
+        aiAutopilotActive = true;
+        if (aiSlider) aiSlider.style.backgroundColor = '#0284c7';
+      }
+      if (aiModeSelect) {
+        aiModeSelect.value = 'tribunal';
+      }
+      updateAiStatusText();
+
+      // Automatically launch mission without requiring manual human click
+      setTimeout(() => {
+        if (modal && modal.style.display !== 'none' && modalBtn) {
+          sound.init();
+          modalBtn.click();
+        }
+      }, 400);
+    });
+
+    // Fallback trigger if DOMContentLoaded already fired
+    setTimeout(() => {
+      if (!aiAutopilotActive && aiToggle) {
+        aiToggle.checked = true;
+        aiAutopilotActive = true;
+        if (aiSlider) aiSlider.style.backgroundColor = '#0284c7';
+        updateAiStatusText();
+      }
+      if (modal && modal.style.display !== 'none' && modalBtn) {
+        sound.init();
+        modalBtn.click();
+      }
+    }, 900);
 
     loop();
   </script>
