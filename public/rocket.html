@@ -2208,32 +2208,32 @@
       if (typeof updateStartButtonState === 'function') updateStartButtonState();
     };
 
-    // Tactical HUD Radar Scanner (360° Real-Time Sector Awareness)
+    // Tactical HUD Radar Scanner (360° Real-Time Sector Awareness - Translucent Bottom-Right HUD)
     function drawTacticalRadar(ctx, screenW, screenH) {
       if (screenW < 220 || screenH < 220) return; // Hide on tiny screens
-      const radarR = 62;
-      const padMargin = 16;
+      const radarR = 56;
+      const padMargin = 14;
       const cx = screenW - radarR - padMargin;
-      const cy = radarR + padMargin;
+      const cy = screenH - radarR - padMargin - 10;
 
       ctx.save();
 
-      // 1. Radar Glass CRT Background & Bezel
+      // 1. Translucent Radar Glass CRT Background & Bezel
       ctx.beginPath();
       ctx.arc(cx, cy, radarR, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(4, 11, 24, 0.88)';
+      ctx.fillStyle = 'rgba(4, 11, 24, 0.32)'; // Translucent glass backdrop
       ctx.fill();
 
       // Outer bezel ring with subtle cyan glow
       ctx.shadowColor = '#00f2fe';
-      ctx.shadowBlur = 8;
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
-      ctx.lineWidth = 1.6;
+      ctx.shadowBlur = 4;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      ctx.lineWidth = 1.4;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
       // 2. Concentric Range Rings (250m, 500m, 750m)
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.14)';
       ctx.lineWidth = 1;
       [0.33, 0.66, 1.0].forEach(frac => {
         ctx.beginPath();
@@ -2242,7 +2242,7 @@
       });
 
       // Reticle crosshairs
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.24)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
       ctx.beginPath();
       ctx.moveTo(cx - radarR, cy);
       ctx.lineTo(cx + radarR, cy);
@@ -2251,20 +2251,20 @@
       ctx.stroke();
 
       // Cardinal compass ticks
-      ctx.font = '8px monospace';
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
+      ctx.font = '7.5px monospace';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
       ctx.textAlign = 'center';
-      ctx.fillText('N', cx, cy - radarR + 9);
+      ctx.fillText('N', cx, cy - radarR + 8);
       ctx.fillText('S', cx, cy + radarR - 3);
       ctx.fillText('W', cx - radarR + 6, cy + 3);
       ctx.fillText('E', cx + radarR - 6, cy + 3);
 
-      // 3. 360° Rotating Phosphor Sweep Beam
+      // 3. 360° Rotating Translucent Phosphor Sweep Beam
       const sweepAngle = (Date.now() * 0.0025) % (Math.PI * 2);
       const sweepArc = 0.55;
       const gradient = ctx.createRadialGradient(cx, cy, 2, cx, cy, radarR);
-      gradient.addColorStop(0, 'rgba(0, 242, 254, 0.35)');
-      gradient.addColorStop(1, 'rgba(0, 242, 254, 0.02)');
+      gradient.addColorStop(0, 'rgba(0, 242, 254, 0.20)');
+      gradient.addColorStop(1, 'rgba(0, 242, 254, 0.01)');
 
       ctx.save();
       ctx.beginPath();
@@ -2278,8 +2278,8 @@
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(sweepAngle) * radarR, cy + Math.sin(sweepAngle) * radarR);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+      ctx.lineWidth = 1.4;
       ctx.stroke();
       ctx.restore();
 
@@ -2311,17 +2311,17 @@
         }
 
         // Emerald landing zone marker
-        ctx.fillStyle = '#4ade80';
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.85)';
         ctx.shadowColor = '#4ade80';
-        ctx.shadowBlur = 6;
-        ctx.fillRect(blipX - 4, blipY - 1.5, 8, 3);
+        ctx.shadowBlur = 5;
+        ctx.fillRect(blipX - 3.5, blipY - 1.5, 7, 3);
 
         // Pulsing target beacon ring
         const padPulse = (Date.now() * 0.005) % 1;
-        ctx.strokeStyle = `rgba(74, 222, 128, ${1 - padPulse})`;
+        ctx.strokeStyle = `rgba(74, 222, 128, ${0.7 * (1 - padPulse)})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(blipX, blipY, 3 + padPulse * 7, 0, Math.PI * 2);
+        ctx.arc(blipX, blipY, 3 + padPulse * 6, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
       }
@@ -2335,11 +2335,11 @@
           if (dist <= radarRangeWorld) {
             const bx = cx + dx * scale;
             const by = cy + dy * scale;
-            ctx.fillStyle = '#f87171';
+            ctx.fillStyle = 'rgba(248, 113, 113, 0.85)';
             ctx.shadowColor = '#ef4444';
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 3;
             ctx.beginPath();
-            ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
+            ctx.arc(bx, by, 2.2, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
           }
@@ -2355,11 +2355,11 @@
           if (dist <= radarRangeWorld) {
             const bx = cx + dx * scale;
             const by = cy + dy * scale;
-            ctx.fillStyle = '#fbbf24';
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.85)';
             ctx.shadowColor = '#f59e0b';
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 3;
             ctx.beginPath();
-            ctx.arc(bx, by, 2, 0, Math.PI * 2);
+            ctx.arc(bx, by, 1.8, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
           }
@@ -2370,14 +2370,14 @@
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(rocket.angle + Math.PI / 2);
-      ctx.fillStyle = '#00f2fe';
+      ctx.fillStyle = 'rgba(0, 242, 254, 0.9)';
       ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 6;
+      ctx.shadowBlur = 5;
       ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(4, 5);
-      ctx.lineTo(0, 3);
-      ctx.lineTo(-4, 5);
+      ctx.moveTo(0, -5.5);
+      ctx.lineTo(3.5, 4.5);
+      ctx.lineTo(0, 2.5);
+      ctx.lineTo(-3.5, 4.5);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -2385,14 +2385,14 @@
       ctx.restore(); // end clip
 
       // 5. Radar Overlay Headings & Range Labels
-      ctx.font = 'bold 8px monospace';
-      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 7.5px monospace';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.7)';
       ctx.textAlign = 'center';
-      ctx.fillText('📡 TACTICAL RADAR', cx, cy - radarR - 5);
+      ctx.fillText('📡 TACTICAL RADAR', cx, cy - radarR - 4);
 
-      ctx.font = '7px monospace';
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
-      ctx.fillText('RANGE: 750m', cx, cy + radarR + 11);
+      ctx.font = '6.5px monospace';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+      ctx.fillText('RANGE: 750m', cx, cy + radarR + 9);
 
       ctx.restore();
     }
