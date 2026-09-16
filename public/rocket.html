@@ -26,6 +26,45 @@
       width: 100%;
       height: 100%;
       display: block;
+      z-index: 1;
+    }
+    /* Tactical Action Screen Viewport HUD Frame */
+    #actionScreenFrame {
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 4;
+      box-shadow: inset 0 0 35px rgba(56, 189, 248, 0.05);
+    }
+    #actionScreenFrame::before {
+      content: "🔴 LIVE TACTICAL FLIGHT VIEWPORT // CAM-1 ACTIVE";
+      position: absolute;
+      top: -10px;
+      left: 20px;
+      background: #030611;
+      padding: 1px 10px;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 4px;
+    }
+    #actionScreenFrame::after {
+      content: "TARGET: PRIMARY LANDING PAD // SURFACE RADAR LOCK";
+      position: absolute;
+      bottom: -10px;
+      right: 20px;
+      background: #030611;
+      padding: 1px 10px;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      color: #4ade80;
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      border-radius: 4px;
     }
     /* Heads Up Display */
     #hud {
@@ -36,16 +75,17 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 12px;
       pointer-events: none;
       z-index: 10;
     }
     .hud-panel {
-      background: rgba(10, 16, 32, 0.75);
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: rgba(10, 16, 32, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.35);
       padding: 10px 14px;
       border-radius: 12px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
     }
     .bar-container {
       display: flex;
@@ -80,25 +120,28 @@
     .safe { color: #4ade80; }
     .danger { color: #f87171; }
 
-    /* Modals & Overlays */
+    /* Modals & Overlays (Non-blocking floating dialog) */
     #modal {
       position: absolute;
-      inset: 0;
-      display: flex;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(3, 6, 17, 0.85);
-      backdrop-filter: blur(8px);
+      background: transparent;
       z-index: 30;
+      pointer-events: auto;
     }
     .card {
-      background: #090e1f;
-      border: 1px solid rgba(56, 189, 248, 0.5);
-      border-radius: 18px;
-      padding: 32px 36px;
+      background: rgba(9, 14, 31, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.7);
+      border-radius: 16px;
+      padding: 24px 28px;
       text-align: center;
       max-width: 440px;
-      box-shadow: 0 0 50px rgba(56, 189, 248, 0.2);
+      box-shadow: 0 0 45px rgba(56, 189, 248, 0.35), 0 25px 60px rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(14px);
     }
     .card h1 {
       font-size: 24px;
@@ -186,15 +229,16 @@
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <div id="actionScreenFrame"></div>
 
   <!-- HUD -->
   <div id="hud">
-    <div class="hud-panel" style="pointer-events: auto; min-width: 175px;">
+    <div class="hud-panel" style="pointer-events: auto; min-width: 260px; max-width: 320px;">
       <!-- Mission Launch & Pause Controls -->
       <div style="display: flex; gap: 4px; margin-bottom: 8px;">
-        <button id="hudStartBtn" style="flex: 1; padding: 6px 6px; font-size: 11px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(16,185,129,0.4); text-transform: uppercase;">▶ START</button>
-        <button id="hudPauseBtn" style="flex: 1; padding: 6px 6px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase;">⏸ PAUSE</button>
-        <button id="hudResetBtn" style="padding: 6px 8px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; border-radius: 6px; cursor: pointer;" title="Restart Current Sector">🔄</button>
+        <button id="hudStartBtn" style="flex: 1; padding: 7px 6px; font-size: 11px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid #34d399; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(16,185,129,0.5); text-transform: uppercase;">▶ START</button>
+        <button id="hudPauseBtn" style="flex: 1; padding: 7px 6px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase;">⏸ PAUSE</button>
+        <button id="hudResetBtn" style="padding: 7px 10px; font-size: 11px; background: rgba(30, 41, 59, 0.9); color: #cbd5e1; border: 1px solid #475569; border-radius: 6px; cursor: pointer;" title="Restart Current Sector">🔄</button>
       </div>
       <div class="bar-container">
         <span>FUEL:</span>
@@ -204,8 +248,24 @@
         <span>HULL:</span>
         <div class="bar-outer"><div id="shieldBar" class="bar-shield"></div></div>
       </div>
-      <div class="hud-metric" style="margin-top: 6px;">SECTOR: <span id="levelDisplay" style="color: #38bdf8; font-weight: bold;">LVL 1 / 100</span></div>
-      <div class="hud-metric" style="margin-top: 2px; font-size: 10px; color: #94a3b8;">GRAVITY: <span id="gravityDisplay" style="color: #f59e0b;">0.015 g</span></div>
+      <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+        <div class="hud-metric">SECTOR: <span id="levelDisplay" style="color: #38bdf8; font-weight: bold;">LVL 1 / 100</span></div>
+        <div class="hud-metric" style="font-size: 10px; color: #94a3b8;">GRAVITY: <span id="gravityDisplay" style="color: #f59e0b;">0.015 g</span></div>
+      </div>
+
+      <!-- Observer Bot Live Comms & Thought Terminal -->
+      <div id="observerTerminal" style="margin-top: 8px; border-top: 1px solid rgba(56, 189, 248, 0.25); padding-top: 6px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <span style="font-size: 10px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 5px;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80;"></span>
+            OBSERVER BOT COMMS
+          </span>
+          <span id="observerBadge" style="font-size: 8px; color: #c084fc; background: rgba(192, 132, 252, 0.15); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(192, 132, 252, 0.3);">TRANSMITTING</span>
+        </div>
+        <div id="observerLog" style="font-size: 10px; line-height: 1.4; color: #e0f2fe; max-height: 100px; overflow-y: auto; background: rgba(3, 6, 17, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 6px; font-family: monospace; white-space: normal; word-break: break-word;">
+          <div style="color: #a5f3fc;"><strong style="color: #4ade80;">[OBSERVER]:</strong> Start button is located right above! Click <strong>[▶ START]</strong> to launch flight. AI Tribunal active with 2000 tokens on Hermes 3.</div>
+        </div>
+      </div>
     </div>
 
     <div class="hud-panel" id="aiPanel" style="text-align: center; min-width: 320px; pointer-events: auto;">
@@ -337,6 +397,33 @@
     const hudPauseBtn = document.getElementById('hudPauseBtn');
     const hudResetBtn = document.getElementById('hudResetBtn');
 
+    function observerSpeak(msg, type = 'info') {
+      const observerLog = document.getElementById('observerLog');
+      const aiThought = document.getElementById('aiThought');
+      const timeStr = new Date().toTimeString().split(' ')[0];
+      
+      let tagColor = '#38bdf8';
+      let tagIcon = '📡';
+      if (type === 'warn') { tagColor = '#f59e0b'; tagIcon = '⚠️'; }
+      else if (type === 'success') { tagColor = '#4ade80'; tagIcon = '🎯'; }
+      else if (type === 'error') { tagColor = '#f87171'; tagIcon = '🚨'; }
+      else if (type === 'curated') { tagColor = '#c084fc'; tagIcon = '🌌'; }
+
+      if (observerLog) {
+        const line = document.createElement('div');
+        line.style.marginBottom = '4px';
+        line.innerHTML = `<span style="color:#64748b; font-size:9px;">[${timeStr}]</span> <strong style="color:${tagColor};">${tagIcon} [OBSERVER]:</strong> <span style="color:#e2e8f0;">${msg}</span>`;
+        observerLog.appendChild(line);
+        while (observerLog.children.length > 45) {
+          observerLog.removeChild(observerLog.firstChild);
+        }
+        observerLog.scrollTop = observerLog.scrollHeight;
+      }
+      if (aiThought) {
+        aiThought.innerText = `${tagIcon} ${msg}`;
+      }
+    }
+
     function updateStartButtonState() {
       if (hudPauseBtn) {
         if (gameState === 'PAUSED') {
@@ -384,6 +471,7 @@
           initLevel(currentLevel);
           gameState = 'PLAYING';
         }
+        observerSpeak(`Start command received. Flight initiated in Sector ${currentLevel}!`, 'info');
         updateStartButtonState();
       });
     }
@@ -393,10 +481,10 @@
         sound.init();
         if (gameState === 'PLAYING') {
           gameState = 'PAUSED';
-          if (aiThought) aiThought.innerText = "⏸ Mission Paused. Click Resume to continue flight.";
+          observerSpeak("Flight paused by user. Click [▶ RESUME] at the top of this box to continue.", "warn");
         } else if (gameState === 'PAUSED') {
           gameState = 'PLAYING';
-          if (aiThought) aiThought.innerText = "▶ Mission Resumed.";
+          observerSpeak("Flight resumed. AI guidance active.", "info");
         }
         updateStartButtonState();
       });
@@ -408,6 +496,7 @@
         if (modal) modal.style.display = 'none';
         initLevel(currentLevel);
         gameState = 'PLAYING';
+        observerSpeak(`Sector ${currentLevel} reset to initial launch telemetry.`, 'warn');
         updateStartButtonState();
       });
     }
@@ -511,9 +600,16 @@
     }
 
     let width, height;
+    let dpr = 1;
     function resize() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      dpr = window.devicePixelRatio || 1;
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     window.addEventListener('resize', resize);
     resize();
@@ -699,34 +795,126 @@
         if (this.y < 15) { this.y = 15; this.vy = Math.abs(this.vy) * 0.5; }
       }
       draw(ctx) {
+        // 1. Draw Tactical AR Target Reticle around the rocket (in screen space)
+        ctx.save();
+        const boxSize = 24;
+        ctx.strokeStyle = this.shield < 30 ? '#ef4444' : '#38bdf8';
+        ctx.lineWidth = 1.4;
+
+        // Reticle corner brackets
+        ctx.beginPath();
+        // Top-left
+        ctx.moveTo(this.x - boxSize, this.y - boxSize + 6);
+        ctx.lineTo(this.x - boxSize, this.y - boxSize);
+        ctx.lineTo(this.x - boxSize + 6, this.y - boxSize);
+        // Top-right
+        ctx.moveTo(this.x + boxSize - 6, this.y - boxSize);
+        ctx.lineTo(this.x + boxSize, this.y - boxSize);
+        ctx.lineTo(this.x + boxSize, this.y - boxSize + 6);
+        // Bottom-left
+        ctx.moveTo(this.x - boxSize, this.y + boxSize - 6);
+        ctx.lineTo(this.x - boxSize, this.y + boxSize);
+        ctx.lineTo(this.x - boxSize + 6, this.y + boxSize);
+        // Bottom-right
+        ctx.moveTo(this.x + boxSize - 6, this.y + boxSize);
+        ctx.lineTo(this.x + boxSize, this.y + boxSize);
+        ctx.lineTo(this.x + boxSize, this.y + boxSize - 6);
+        ctx.stroke();
+
+        // Velocity heading vector arrow
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+        ctx.lineWidth = 1.2;
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.vx * 14, this.y + this.vy * 14);
+        ctx.stroke();
+
+        // AR Ship HUD Callout
+        ctx.font = 'bold 9px monospace';
+        ctx.fillStyle = '#38bdf8';
+        ctx.textAlign = 'left';
+        const modelLabel = typeof getActiveModelName === 'function' ? getActiveModelName().split(':')[0].toUpperCase() : 'SHIP';
+        ctx.fillText(`🚀 [${modelLabel}]`, this.x + boxSize + 4, this.y - 4);
+        const alt = typeof landingPad !== 'undefined' ? Math.max(0, Math.round(landingPad.y - this.y)) : 0;
+        const spd = Math.hypot(this.vx, this.vy).toFixed(1);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(`ALT: ${alt}m | ${spd} m/s`, this.x + boxSize + 4, this.y + 7);
+        ctx.restore();
+
+        // 2. Draw Rocket Hull (Oriented in Local Rotational Space)
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI / 2);
 
-        // Rocket Body (Sleek aerodynamic hull)
+        // Rocket Body Gradient (Sleek titanium hull)
+        const hullGrad = ctx.createLinearGradient(0, -22, 0, 16);
+        hullGrad.addColorStop(0, '#ffffff');
+        hullGrad.addColorStop(0.3, '#38bdf8');
+        hullGrad.addColorStop(1, '#0f172a');
+
         ctx.beginPath();
-        ctx.moveTo(0, -18); // Nose
-        ctx.lineTo(8, 8);
-        ctx.lineTo(12, 14); // Right fin
-        ctx.lineTo(5, 14);
-        ctx.lineTo(4, 16);  // Engine bell
-        ctx.lineTo(-4, 16);
-        ctx.lineTo(-5, 14);
-        ctx.lineTo(-12, 14); // Left fin
-        ctx.lineTo(-8, 8);
+        ctx.moveTo(0, -22);     // Sharp aerodynamic nose
+        ctx.lineTo(9, 6);
+        ctx.lineTo(16, 16);     // Starboard fin
+        ctx.lineTo(7, 16);
+        ctx.lineTo(5, 18);      // Engine bell
+        ctx.lineTo(-5, 18);
+        ctx.lineTo(-7, 16);
+        ctx.lineTo(-16, 16);    // Port fin
+        ctx.lineTo(-9, 6);
         ctx.closePath();
 
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = hullGrad;
         ctx.fill();
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.2;
         ctx.strokeStyle = this.shield < 30 ? '#ef4444' : '#38bdf8';
         ctx.stroke();
 
-        // Cockpit window
+        // High-contrast Center Fuselage Core
         ctx.beginPath();
-        ctx.arc(0, -5, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#00f2fe';
+        ctx.moveTo(0, -18);
+        ctx.lineTo(5, 4);
+        ctx.lineTo(4, 15);
+        ctx.lineTo(-4, 15);
+        ctx.lineTo(-5, 4);
+        ctx.closePath();
+        ctx.fillStyle = '#0284c7';
         ctx.fill();
+
+        // Cockpit Window / Sensor Visor
+        ctx.beginPath();
+        ctx.arc(0, -6, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#00f2fe';
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Deployable Landing Shock-Absorber Struts
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.8;
+        // Port landing leg
+        ctx.beginPath();
+        ctx.moveTo(-6, 14);
+        ctx.lineTo(-11, 21);
+        ctx.lineTo(-14, 21); // Footpad
+        ctx.stroke();
+        // Starboard landing leg
+        ctx.beginPath();
+        ctx.moveTo(6, 14);
+        ctx.lineTo(11, 21);
+        ctx.lineTo(14, 21); // Footpad
+        ctx.stroke();
+
+        // Flashing Navigation Strobe Lights on Wingtips
+        const strobeT = Date.now() * 0.008;
+        const strobeOn = Math.sin(strobeT) > 0;
+        // Port wingtip: RED
+        ctx.fillStyle = strobeOn ? '#ef4444' : '#7f1d1d';
+        ctx.fillRect(-17, 14, 3, 3);
+        // Starboard wingtip: GREEN
+        ctx.fillStyle = strobeOn ? '#22c55e' : '#14532d';
+        ctx.fillRect(14, 14, 3, 3);
 
         ctx.restore();
       }
@@ -847,28 +1035,96 @@
       }
       draw(ctx) {
         ctx.save();
-        // Base structure
-        ctx.fillStyle = '#0f172a';
+
+        // 1. Vertical Holographic Landing Guide Beam (Shooting straight up into space)
+        const beamGrad = ctx.createLinearGradient(0, this.y, 0, 0);
+        beamGrad.addColorStop(0, 'rgba(74, 222, 128, 0.28)');
+        beamGrad.addColorStop(0.35, 'rgba(74, 222, 128, 0.10)');
+        beamGrad.addColorStop(1, 'rgba(74, 222, 128, 0.0)');
+        ctx.fillStyle = beamGrad;
+        ctx.fillRect(this.x, 0, this.width, this.y);
+
+        // Dashed landing approach centerline
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([8, 10]);
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width / 2, 0);
+        ctx.lineTo(this.x + this.width / 2, this.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. Elevated Gantry Foundation Support Pylons (Anchored into lunar ground)
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2.5;
+        const groundLevel = height - 35;
+        // Left Pylon
+        ctx.beginPath();
+        ctx.moveTo(this.x + 8, this.y + this.height);
+        ctx.lineTo(this.x + 8, groundLevel);
+        ctx.stroke();
+        // Right Pylon
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width - 8, this.y + this.height);
+        ctx.lineTo(this.x + this.width - 8, groundLevel);
+        ctx.stroke();
+        // Cross Truss Bracing
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(this.x + 8, this.y + this.height);
+        ctx.lineTo(this.x + this.width - 8, groundLevel);
+        ctx.moveTo(this.x + this.width - 8, this.y + this.height);
+        ctx.lineTo(this.x + 8, groundLevel);
+        ctx.stroke();
+
+        // 3. Landing Pad Deck & Hazard Chevrons
+        ctx.fillStyle = '#090d16';
         ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        // Diagonal Yellow/Black Hazard Stripes
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.width, this.height);
+        ctx.clip();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 4;
+        for (let sx = -this.height; sx < this.width + this.height; sx += 14) {
+          ctx.beginPath();
+          ctx.moveTo(this.x + sx, this.y + this.height);
+          ctx.lineTo(this.x + sx + this.height, this.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Perimeter illuminated neon green border
         ctx.strokeStyle = '#4ade80';
         ctx.lineWidth = 2.5;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
 
-        // Flashing beacon lights
-        const t = Date.now() * 0.005;
-        const beaconOn = Math.sin(t) > 0;
-        ctx.fillStyle = beaconOn ? '#4ade80' : '#15803d';
-        ctx.fillRect(this.x + 4, this.y - 6, 8, 6);
-        ctx.fillRect(this.x + this.width - 12, this.y - 6, 8, 6);
+        // 4. Strobe Beacon Towers with Bright Flares
+        const t = Date.now() * 0.007;
+        const strobeA = Math.sin(t) > 0;
+        const strobeB = Math.cos(t) > 0;
 
-        // Landing zone stripes
-        ctx.fillStyle = 'rgba(74, 222, 128, 0.2)';
-        ctx.fillRect(this.x, this.y - 50, this.width, 50);
+        // Left Beacon Strobe
+        ctx.fillStyle = strobeA ? '#4ade80' : '#15803d';
+        ctx.shadowColor = '#4ade80';
+        ctx.shadowBlur = strobeA ? 12 : 2;
+        ctx.fillRect(this.x - 4, this.y - 8, 8, 8);
 
-        ctx.font = '10px monospace';
+        // Right Beacon Strobe
+        ctx.fillStyle = strobeB ? '#38bdf8' : '#0369a1';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = strobeB ? 12 : 2;
+        ctx.fillRect(this.x + this.width - 4, this.y - 8, 8, 8);
+        ctx.shadowBlur = 0;
+
+        // 5. Target Label & Coordinates
+        ctx.font = 'bold 10px monospace';
         ctx.fillStyle = '#4ade80';
         ctx.textAlign = 'center';
-        ctx.fillText('LANDING PAD', this.x + this.width / 2, this.y + 9);
+        ctx.fillText(`🎯 TARGET PAD [X: ${Math.round(this.x + this.width / 2)}]`, this.x + this.width / 2, this.y + this.height + 15);
         ctx.restore();
       }
     }
@@ -918,7 +1174,7 @@
       // Landing pad width scales down with level (140px on Lvl 1 -> 70px on Lvl 100)
       const padWidth = Math.max(70, Math.round(140 - (currentLevel - 1) * 0.7));
       const padX = width * (0.55 + Math.sin(currentLevel * 0.7) * 0.25);
-      const padY = height - (65 + (currentLevel % 5) * 8);
+      const padY = height - (75 + (currentLevel % 5) * 6);
       landingPad = new LandingPad(padX, padY, padWidth);
 
       // Rocket spawn location
@@ -961,6 +1217,7 @@
           score += 250;
           scoreDisplay.innerText = score;
           sound.playChime();
+          observerSpeak("Fuel canister secured (+35% Fuel Reserve, +250 pts).", "info");
         }
       }
 
@@ -975,7 +1232,7 @@
       }
 
       // Check Ground / Landing Pad
-      if (rocket.y + 14 >= landingPad.y) {
+      if (rocket.y + 16 >= landingPad.y) {
         // Over landing pad horizontal span
         if (rocket.x >= landingPad.x && rocket.x <= landingPad.x + landingPad.width) {
           const vSpeed = rocket.vy;
@@ -993,7 +1250,7 @@
           } else {
             explodeRocket(`Hard impact! V-Speed: ${vSpeed.toFixed(1)} m/s (Limit: 2.2)`);
           }
-        } else if (rocket.y + 14 >= height - 20) {
+        } else if (rocket.y + 16 >= height - 35) {
           // Crashed on terrain
           explodeRocket('Crashed into lunar surface!');
         }
@@ -1022,6 +1279,7 @@
           modal.style.display = 'none';
           initLevel(currentLevel + 1);
           gameState = 'PLAYING';
+          observerSpeak(`Proceeding to Sector ${currentLevel}! Gravity calibrated to ${currentGravity.toFixed(3)}g.`, 'info');
         };
       } else {
         modalTitle.innerText = '100 SECTORS CONQUERED!';
@@ -1045,6 +1303,8 @@
         vectorDB.insertMemory(emb, 'WIN', { thrust: true, left: keys.left, right: keys.right }, `Touchdown Lvl ${currentLevel}`);
       }
 
+      observerSpeak(`Touchdown confirmed in Sector ${currentLevel}! +50 Tokens rewarded (Balance: ${aiTokens}). Flight vector curated into Master DB.`, 'success');
+
       // Rotate model choice to try diverse strategies on next level
       rotateOllamaModel();
 
@@ -1052,7 +1312,6 @@
       gameState = 'WON';
       if (typeof updateStartButtonState === 'function') updateStartButtonState();
       if (aiAutopilotActive) {
-        aiThought.innerText = `🏆 Sector ${currentLevel} Cleared! +50 Tokens awarded. Auto-advancing...`;
         setTimeout(() => {
           if (aiAutopilotActive && gameState === 'WON') {
             modalBtn.click();
@@ -1089,6 +1348,7 @@
         modal.style.display = 'none';
         initLevel(currentLevel);
         gameState = 'PLAYING';
+        observerSpeak(`Retrying Sector ${currentLevel} with updated vector corrections.`, 'info');
       };
       modal.style.display = 'flex';
       gameState = 'GAMEOVER';
@@ -1103,11 +1363,12 @@
         vectorDB.insertMemory(emb, 'CRASH', { thrust: keys.thrust, left: keys.left, right: keys.right }, reason);
       }
 
+      observerSpeak(`Hull breach: ${reason} -35 Tokens penalized (Treasury: ${aiTokens}). Crash logged to model vector memory.`, 'error');
+
       // Rotate model choice to evaluate alternative LLM reasoning on retry
       rotateOllamaModel();
 
       if (aiAutopilotActive) {
-        aiThought.innerText = `💥 Crash (-35 Tokens). Vector logged. Rotating to [${getActiveModelName()}] and retrying...`;
         setTimeout(() => {
           if (aiAutopilotActive && gameState === 'GAMEOVER') {
             modalBtn.click();
@@ -1123,6 +1384,8 @@
       gameState = 'PLAYING';
       if (typeof updateStartButtonState === 'function') updateStartButtonState();
     };
+
+    let telemetryCounter = 0;
 
     // Main Game Loop
     function loop() {
@@ -1141,15 +1404,77 @@
       }
       ctx.restore();
 
-      // Draw Lunar Ground
-      ctx.fillStyle = '#0b1120';
-      ctx.fillRect(0, height - 20, width, 20);
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(0, height - 20, width, 20);
+      // Tactical Guidance Corridor (Dashed neon green beam from ship to pad)
+      if (!rocket.crashed && !rocket.landed && typeof landingPad !== 'undefined') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.35)';
+        ctx.lineWidth = 1.3;
+        ctx.setLineDash([5, 7]);
+        ctx.beginPath();
+        ctx.moveTo(rocket.x, rocket.y);
+        ctx.lineTo(landingPad.x + landingPad.width / 2, landingPad.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      // Draw Lunar Ground & Surface Bedrock
+      ctx.save();
+      const groundY = height - 35;
+      const groundGrad = ctx.createLinearGradient(0, groundY, 0, height);
+      groundGrad.addColorStop(0, '#1e293b');
+      groundGrad.addColorStop(1, '#070b14');
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(0, groundY, width, 35);
+
+      // Neon surface horizon border
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(width, groundY);
+      ctx.stroke();
+
+      // Surface radar grid hashes
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.lineWidth = 1;
+      for (let gx = 0; gx < width; gx += 45) {
+        ctx.beginPath();
+        ctx.moveTo(gx, groundY);
+        ctx.lineTo(gx, height);
+        ctx.stroke();
+      }
+
+      // Altitude Ladder on Right Viewport Edge
+      ctx.font = '8px monospace';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.textAlign = 'right';
+      for (let altMark = 100; altMark <= 600; altMark += 100) {
+        const my = (height - 35) - altMark;
+        if (my > 50) {
+          ctx.fillText(`-${altMark}m`, width - 12, my + 3);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+          ctx.beginPath();
+          ctx.moveTo(width - 8, my);
+          ctx.lineTo(width - 3, my);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
 
       // Landing Pad
       landingPad.draw(ctx);
+
+      // Periodic In-Flight Telemetry for Observer Comms Console
+      if (gameState === 'PLAYING' && !rocket.crashed && !rocket.landed) {
+        telemetryCounter++;
+        if (telemetryCounter % 220 === 0) {
+          const curAlt = Math.max(0, Math.round(landingPad.y - rocket.y));
+          const curDx = Math.round(rocket.x - (landingPad.x + landingPad.width / 2));
+          const modelName = getActiveModelName();
+          observerSpeak(`In-flight telemetry: Alt ${curAlt}m | Offset ${curDx > 0 ? '+' : ''}${curDx}m | Model: [${modelName}] | V-Spd: ${rocket.vy.toFixed(1)} m/s`, 'info');
+        }
+      }
 
       // Fuel Orbs
       fuelOrbs.forEach(orb => {
@@ -1964,6 +2289,7 @@
                 supervisorAction.style.color = '#c084fc';
                 setTimeout(() => { if (supervisorAction) supervisorAction.style.color = '#38bdf8'; }, 2200);
               }
+              observerSpeak(`Observer Curated: [${currentM}] touchdown promoted to Master Vector DB (Quality: ${quality}).`, 'curated');
             }
           }
         } else {
@@ -1994,6 +2320,7 @@
                 supervisorAction.style.color = '#f87171';
                 setTimeout(() => { if (supervisorAction) supervisorAction.style.color = '#38bdf8'; }, 2000);
               }
+              observerSpeak("Observer: Hazard vector logged in Shared Master DB (Asteroid threat).", "warn");
             }
           }
         }
@@ -2033,9 +2360,7 @@
           setTimeout(() => { if (supervisorAction) supervisorAction.style.color = '#38bdf8'; }, 2000);
         }
 
-        if (aiThought) {
-          aiThought.innerText = `🛰️ Supervisor Intervened: Reconfigured to [${newModel}] & tuned RL exploration`;
-        }
+        observerSpeak(`Supervisor Intervened: ${triggerReason}. Reconfigured to [${newModel}] & tuned RL exploration.`, 'warn');
 
         this.consecutiveCrashes = 0;
         updateVectorHUDDisplays();
@@ -2052,10 +2377,15 @@
     };
 
     // ==========================================
-    // ⚡ INSTANT AUTONOMOUS START ON LOAD
+    // ⚡ INSTANT AUTONOMOUS FLIGHT INITIALIZATION
     // ==========================================
-    window.addEventListener('DOMContentLoaded', () => {
-      // Auto-enable AI Pilot Tribunal by default
+    function initializeFlightSystem() {
+      // 1. Immediately position rocket and landing pad in Sector 1
+      initLevel(1);
+      gameState = 'PLAYING';
+      if (modal) modal.style.display = 'none';
+
+      // 2. Auto-enable AI Pilot Tribunal by default
       if (aiToggle) {
         aiToggle.checked = true;
         aiAutopilotActive = true;
@@ -2065,29 +2395,18 @@
         aiModeSelect.value = 'tribunal';
       }
       updateAiStatusText();
+      if (typeof updateStartButtonState === 'function') updateStartButtonState();
+      if (typeof updateVectorHUDDisplays === 'function') updateVectorHUDDisplays();
 
-      // Automatically launch mission without requiring manual human click
-      setTimeout(() => {
-        if (modal && modal.style.display !== 'none' && modalBtn) {
-          sound.init();
-          modalBtn.click();
-        }
-      }, 400);
-    });
+      // 3. Observer Initial Mission Transmission to Top-Left Box
+      observerSpeak("Systems nominal. Tactical action screen online. The [▶ START] button is located directly above this box. Autonomous Tribunal calibrated with 2000 tokens on Hermes 3.", "info");
+    }
 
-    // Fallback trigger if DOMContentLoaded already fired
-    setTimeout(() => {
-      if (!aiAutopilotActive && aiToggle) {
-        aiToggle.checked = true;
-        aiAutopilotActive = true;
-        if (aiSlider) aiSlider.style.backgroundColor = '#0284c7';
-        updateAiStatusText();
-      }
-      if (modal && modal.style.display !== 'none' && modalBtn) {
-        sound.init();
-        modalBtn.click();
-      }
-    }, 900);
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initializeFlightSystem);
+    } else {
+      initializeFlightSystem();
+    }
 
     loop();
   </script>
