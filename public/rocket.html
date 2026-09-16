@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Cosmic Lander: Space Rocket Odyssey</title>
-  <meta name="description" content="Arcade Newtonian physics space rocket game. Land safely, dodge asteroids, and master planetary gravity.">
+  <meta name="description" content="A web-based lunar lander simulation game that features an integrated Artificial Intelligence control dashboard, allowing different AI models and algorithms to pilot the ship.">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
     body, html {
@@ -208,7 +208,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
         <span style="font-size: 13px; font-weight: bold; color: #38bdf8;">⚖️ AI TRIBUNAL</span>
         <select id="aiModeSelect" style="background: #0f172a; color: #38bdf8; border: 1px solid #0284c7; border-radius: 6px; font-size: 11px; padding: 2px 6px; outline: none;">
-          <option value="tribunal" selected>🏛️ AI Tribunal (All 3 + Vector DB)</option>
+          <option value="tribunal" selected>🏛️ AI Tribunal (Combines RL, LLM, PID, and Vector DB)</option>
           <option value="rl">🧠 Self-Learning (Q-Learning RL)</option>
           <option value="ollama">🦙 Ollama Local LLM</option>
           <option value="heuristic">🚀 Algorithmic Guidance</option>
@@ -283,9 +283,9 @@
   <!-- Interactive Modal (Menu, Win, Game Over) -->
   <div id="modal">
     <div class="card">
-      <h1 id="modalTitle">COSMIC LANDER</h1>
+      <h1 id="modalTitle">COSMIC LANDER: SPACE ROCKET ODYSSEY</h1>
       <p id="modalDesc">
-        Master Newtonian momentum. Use thrusters to navigate space, collect fuel orbs, dodge asteroids, and land softly upright onto landing pads!
+        A web-based lunar lander simulation game that features an integrated Artificial Intelligence control dashboard, allowing different AI models and algorithms to pilot the ship.
       </p>
       <div style="margin-bottom: 20px; font-size: 12px; color: #64748b;">
         <span>Controls: <strong>↑ / W</strong> Thrust &nbsp;|&nbsp; <strong>← → / A D</strong> Turn &nbsp;|&nbsp; <strong>Touch buttons</strong> on mobile</span>
@@ -1740,7 +1740,7 @@
         if (voteRL) voteRL.innerText = `🧠 RL: ${voteRLAction.tag}`;
         if (voteLLM) voteLLM.innerText = `${modelIcon} ${shortModel}: ${voteLLMAction ? voteLLMAction.tag : '...'}`;
         if (votePID) votePID.innerText = `🚀 PID: ${votePIDAction.tag}`;
-        if (voteVDB) voteVDB.innerText = `🌌 V-Mem: C[${curWins}W] P[${pvtWins}W]`;
+        if (voteVDB) voteVDB.innerText = `🌌 RAG: C[${curWins}W] P[${pvtWins}W]`;
         if (aiConsensusDisplay) aiConsensusDisplay.innerText = `${avgConsensus}%`;
         updateVectorHUDDisplays();
 
